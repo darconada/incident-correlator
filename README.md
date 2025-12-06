@@ -68,7 +68,9 @@ sudo bash install-service.sh
 
 3. **Acceder**:
 - Aplicacion: http://localhost:5178
-- API Docs (Swagger): http://localhost:5178/docs
+- API Docs: http://localhost:5178/api-docs
+- Swagger UI: http://localhost:5178/docs
+- ReDoc: http://localhost:5178/redoc
 
 4. **Comandos utiles**:
 ```bash
@@ -223,7 +225,18 @@ Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, p
 | proximity_2h | x1.2 | TECCM empezo <2 horas del INC |
 | proximity_4h | x1.1 | TECCM empezo <4 horas del INC |
 
-## API Endpoints
+## API REST
+
+### Documentacion
+
+| URL | Descripcion |
+|-----|-------------|
+| `/api-docs` | Documentacion estatica integrada en la aplicacion |
+| `/docs` | **Swagger UI** - Documentacion interactiva con testing en vivo |
+| `/redoc` | **ReDoc** - Documentacion alternativa mas legible |
+| `/openapi.json` | Especificacion OpenAPI (importable en Postman/Insomnia) |
+
+### Endpoints
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
@@ -244,8 +257,7 @@ Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, p
 | PUT | `/api/config/weights` | Actualizar pesos |
 | GET | `/api/config/app` | Obtener configuracion completa |
 | PUT | `/api/config/app` | Actualizar configuracion |
-
-Documentacion interactiva disponible en `/docs` (Swagger UI) y `/redoc`.
+| GET | `/health` | Health check (no requiere auth) |
 
 ## Estructura del Proyecto
 
@@ -273,7 +285,7 @@ incident-correlator/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/       # Componentes UI
-│   │   ├── pages/            # Paginas (Dashboard, Analysis, Settings)
+│   │   ├── pages/            # Paginas (Dashboard, Analysis, Settings, ApiDocs)
 │   │   ├── api/              # Cliente API
 │   │   ├── types/            # TypeScript types
 │   │   └── App.tsx
