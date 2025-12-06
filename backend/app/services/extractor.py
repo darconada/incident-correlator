@@ -704,6 +704,7 @@ class SearchOptions:
         window_after: str = "2h",
         include_active: bool = True,
         include_no_end: bool = True,
+        include_external_maintenance: bool = False,
         max_results: int = 500,
         extra_jql: str = "",
         project: str = "TECCM"
@@ -712,6 +713,7 @@ class SearchOptions:
         self.window_after = parse_window(window_after)
         self.include_active = include_active
         self.include_no_end = include_no_end
+        self.include_external_maintenance = include_external_maintenance
         self.max_results = max_results
         self.extra_jql = extra_jql.strip()
         self.project = project
@@ -939,12 +941,14 @@ def extract_inc_with_teccms(
         # Importante: usar 'is not None' para no confundir False con ausencia de valor
         include_active = search_options.get("include_active")
         include_no_end = search_options.get("include_no_end")
+        include_external_maintenance = search_options.get("include_external_maintenance")
 
         options = SearchOptions(
             window_before=search_options.get("window_before", "48h"),
             window_after=search_options.get("window_after", "2h"),
             include_active=include_active if include_active is not None else True,
             include_no_end=include_no_end if include_no_end is not None else True,
+            include_external_maintenance=include_external_maintenance if include_external_maintenance is not None else False,
             max_results=search_options.get("max_results", 500),
             extra_jql=search_options.get("extra_jql", ""),
             project=search_options.get("project", "TECCM"),
@@ -1018,6 +1022,7 @@ def extract_inc_with_teccms(
             "window_after": search_options.get("window_after", "2h"),
             "include_active": options.include_active,
             "include_no_end": options.include_no_end,
+            "include_external_maintenance": options.include_external_maintenance,
             "max_results": options.max_results,
             "extra_jql": options.extra_jql or None,
             "project": options.project,

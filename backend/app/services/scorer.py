@@ -564,7 +564,8 @@ def calculate_ranking(
     thresholds: Dict[str, float] = None,
     penalties: Dict[str, float] = None,
     bonuses: Dict[str, float] = None,
-    min_score: float = 0.0
+    min_score: float = 0.0,
+    include_external_maintenance: bool = None
 ) -> Dict[str, Any]:
     """
     Calcula el ranking de TECCMs para un INC.
@@ -576,6 +577,8 @@ def calculate_ranking(
         penalties: Penalizaciones
         bonuses: Bonificaciones por proximidad
         min_score: Score mínimo para incluir en ranking
+        include_external_maintenance: Incluir tickets EXTERNAL MAINTENANCE en el scoring
+            (si None, se lee de extraction_info.search_options)
 
     Returns:
         Dict con incident info, analysis info y ranking
@@ -591,9 +594,18 @@ def calculate_ranking(
 
     tickets = extraction_data.get('tickets', [])
 
-    # Separar INC y TECCM
+    # Determinar si incluir EXTERNAL MAINTENANCE
+    # Prioridad: parámetro explícito > search_options guardadas > False por defecto
+    if include_external_maintenance is None:
+        search_options = extraction_data.get('extraction_info', {}).get('search_options', {})
+        include_external_maintenance = search_options.get('include_external_maintenance', False)
+
+    # Separar INC y TECCM (incluyendo EXTERNAL MAINTENANCE si está activado)
     incidents = [t for t in tickets if t['ticket_type'] == 'INCIDENT']
-    changes = [t for t in tickets if t['ticket_type'] == 'CHANGE']
+    if include_external_maintenance:
+        changes = [t for t in tickets if t['ticket_type'] in ('CHANGE', 'EXTERNAL MAINTENANCE')]
+    else:
+        changes = [t for t in tickets if t['ticket_type'] == 'CHANGE']
 
     if not incidents:
         raise ValueError("No incidents found in extraction data")
@@ -647,7 +659,8 @@ def get_teccm_detail(
     extraction_data: Dict[str, Any],
     teccm_key: str,
     weights: Dict[str, float] = None,
-    bonuses: Dict[str, float] = None
+    bonuses: Dict[str, float] = None,
+    include_external_maintenance: bool = None
 ) -> Optional[Dict[str, Any]]:
     """
     Obtiene el detalle de un TECCM específico.
@@ -657,6 +670,7 @@ def get_teccm_detail(
         teccm_key: Key del TECCM
         weights: Pesos para calcular el score
         bonuses: Bonificaciones por proximidad
+        include_external_maintenance: Incluir tickets EXTERNAL MAINTENANCE
 
     Returns:
         Dict con detalle del TECCM o None si no se encuentra
@@ -670,9 +684,17 @@ def get_teccm_detail(
     total_weight = sum(weights.values())
     weights = {k: v / total_weight for k, v in weights.items()}
 
+    # Determinar si incluir EXTERNAL MAINTENANCE
+    if include_external_maintenance is None:
+        search_options = extraction_data.get('extraction_info', {}).get('search_options', {})
+        include_external_maintenance = search_options.get('include_external_maintenance', False)
+
     tickets = extraction_data.get('tickets', [])
     incidents = [t for t in tickets if t['ticket_type'] == 'INCIDENT']
-    changes = [t for t in tickets if t['ticket_type'] == 'CHANGE']
+    if include_external_maintenance:
+        changes = [t for t in tickets if t['ticket_type'] in ('CHANGE', 'EXTERNAL MAINTENANCE')]
+    else:
+        changes = [t for t in tickets if t['ticket_type'] == 'CHANGE']
 
     if not incidents:
         return None

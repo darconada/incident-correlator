@@ -45,6 +45,7 @@ const DEFAULT_SEARCH_OPTIONS: SearchOptions = {
   window_after: '2h',
   include_active: true,
   include_no_end: true,
+  include_external_maintenance: false,
   max_results: 500,
   extra_jql: '',
   project: 'TECCM',
@@ -544,6 +545,19 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Row 2.5: Scoring Options */}
+            <div className="flex items-center gap-2 pt-1">
+              <Switch
+                id="include_external_maintenance"
+                checked={advancedOptions.include_external_maintenance}
+                onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_external_maintenance: v })}
+              />
+              <Label htmlFor="include_external_maintenance" className="text-xs">
+                Incluir External Maintenance en scoring
+              </Label>
+              <span className="text-[10px] text-muted-foreground">(normalmente excluidos)</span>
             </div>
 
             {/* Row 3: Extra JQL + Project */}

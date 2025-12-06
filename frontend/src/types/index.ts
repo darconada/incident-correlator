@@ -24,6 +24,7 @@ export interface SearchOptions {
   window_after: string
   include_active: boolean
   include_no_end: boolean
+  include_external_maintenance: boolean
   max_results: number
   extra_jql: string
   project: string

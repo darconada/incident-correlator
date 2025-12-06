@@ -66,11 +66,12 @@ async def start_extraction(
             "window_after": request.search_options.window_after,
             "include_active": request.search_options.include_active,
             "include_no_end": request.search_options.include_no_end,
+            "include_external_maintenance": request.search_options.include_external_maintenance,
             "max_results": request.search_options.max_results,
             "extra_jql": request.search_options.extra_jql,
             "project": request.search_options.project,
         }
-        logger.info(f"Advanced search: include_active={request.search_options.include_active}, include_no_end={request.search_options.include_no_end}")
+        logger.info(f"Advanced search: include_active={request.search_options.include_active}, include_no_end={request.search_options.include_no_end}, include_external_maintenance={request.search_options.include_external_maintenance}")
 
     # Start background extraction
     start_extraction_job(

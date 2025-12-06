@@ -50,6 +50,7 @@ class SearchOptions(BaseModel):
     window_after: str = Field(default="2h", description="Ventana temporal hacia adelante desde el INC")
     include_active: bool = Field(default=True, description="Incluir TECCMs activos al momento del INC")
     include_no_end: bool = Field(default=True, description="Incluir TECCMs sin fecha de fin")
+    include_external_maintenance: bool = Field(default=False, description="Incluir tickets de tipo EXTERNAL MAINTENANCE en el scoring")
     max_results: int = Field(default=500, ge=10, le=2000, description="Máximo de resultados por búsqueda")
     extra_jql: str = Field(default="", description="Filtro JQL adicional (ej: AND assignee = 'user')")
     project: str = Field(default="TECCM", description="Proyecto Jira a buscar")
