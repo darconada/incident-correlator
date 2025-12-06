@@ -1,0 +1,137 @@
+// API Types
+
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+export interface LoginResponse {
+  success: boolean
+  message: string
+  token?: string
+}
+
+export interface SessionInfo {
+  authenticated: boolean
+  username?: string
+  jira_url: string
+}
+
+export interface ExtractionRequest {
+  inc: string
+  window: string
+}
+
+export interface ExtractionResponse {
+  job_id: string
+  message: string
+}
+
+export interface JobInfo {
+  job_id: string
+  inc: string
+  window: string
+  status: JobStatus
+  progress: number
+  total_teccms?: number
+  error?: string
+  created_at: string
+  completed_at?: string
+}
+
+export interface Weights {
+  time: number
+  service: number
+  infra: number
+  org: number
+}
+
+export interface AppConfig {
+  weights: Weights
+  top_results: number
+}
+
+export interface SubScores {
+  time: number
+  service: number
+  infra: number
+  org: number
+}
+
+export interface SubScoreDetail {
+  score: number
+  reason: string
+  matches: string[]
+}
+
+export interface TECCMRankingItem {
+  rank: number
+  issue_key: string
+  summary: string
+  final_score: number
+  sub_scores: SubScores
+  details: {
+    time_reason: string
+    service_matches: string[]
+    infra_matches: string[]
+    org_matches: string[]
+    penalties: string[]
+  }
+  assignee?: string
+  team?: string
+  planned_start?: string
+  planned_end?: string
+  live_intervals: Array<{ start: string; end: string }>
+  resolution?: string
+  services: string[]
+  hosts: string[]
+  technologies: string[]
+}
+
+export interface IncidentInfo {
+  issue_key: string
+  summary: string
+  first_impact_time?: string
+  created_at?: string
+  services: string[]
+  hosts: string[]
+  technologies: string[]
+}
+
+export interface RankingResponse {
+  incident: IncidentInfo
+  analysis: {
+    teccm_analyzed: number
+    teccm_in_ranking: number
+    scored_at: string
+    weights: Weights
+  }
+  ranking: TECCMRankingItem[]
+}
+
+export interface TECCMDetail {
+  issue_key: string
+  summary: string
+  final_score: number
+  sub_scores: {
+    time: SubScoreDetail
+    service: SubScoreDetail
+    infra: SubScoreDetail
+    org: SubScoreDetail
+  }
+  penalties: string[]
+  teccm_info: {
+    assignee?: string
+    team?: string
+    planned_start?: string
+    planned_end?: string
+    live_intervals: Array<{ start: string; end: string }>
+    resolution?: string
+    services: string[]
+    hosts: string[]
+    technologies: string[]
+  }
+  jira_url: string
+}

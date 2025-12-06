@@ -1,0 +1,24 @@
+version: '3.8'
+
+# Development docker-compose with hot-reload
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inc-correlator-backend-dev
+    ports:
+      - "${BACKEND_PORT:-8008}:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/data:/app/data
+      - ./backend/.env:/app/.env:ro
+    environment:
+      - DATABASE_PATH=/app/data/correlator.db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # Frontend runs natively with npm run dev for hot reload
+  # Use: cd frontend && npm run dev
+  # Puertos configurables en frontend/.env

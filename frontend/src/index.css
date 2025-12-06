@@ -1,0 +1,392 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     THEME: Deep Space (Dark)
+     Cosmic dark theme with cyan primary and violet accents
+     ═══════════════════════════════════════════════════════════════════════════ */
+  :root,
+  [data-theme="deep-space"] {
+    --background: 225 25% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 225 22% 9%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 225 22% 11%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 199 89% 48%;
+    --primary-foreground: 225 25% 6%;
+
+    --secondary: 225 18% 15%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 225 15% 18%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 280 65% 55%;
+    --accent-foreground: 210 20% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 98%;
+
+    --border: 225 15% 16%;
+    --input: 225 18% 12%;
+    --ring: 199 89% 48%;
+    --radius: 0.625rem;
+
+    /* Score colors */
+    --score-high: 152 69% 50%;
+    --score-medium: 45 93% 58%;
+    --score-low: 25 95% 53%;
+    --score-critical: 0 72% 51%;
+
+    /* Glow effects */
+    --glow-primary: 199 89% 48%;
+    --glow-success: 152 69% 50%;
+    --glow-warning: 45 93% 58%;
+
+    /* Theme-specific */
+    --theme-gradient-1: 199 89% 48%;
+    --theme-gradient-2: 280 65% 55%;
+    --theme-gradient-3: 152 69% 50%;
+    --noise-opacity: 0.015;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     THEME: Solar (Light - Warm)
+     Warm, energetic light theme with amber/orange accents
+     Inspired by golden hour sunlight
+     ═══════════════════════════════════════════════════════════════════════════ */
+  [data-theme="solar"] {
+    --background: 45 30% 97%;
+    --foreground: 25 30% 12%;
+
+    --card: 45 40% 99%;
+    --card-foreground: 25 30% 12%;
+
+    --popover: 45 35% 98%;
+    --popover-foreground: 25 30% 12%;
+
+    --primary: 25 95% 53%;
+    --primary-foreground: 45 30% 99%;
+
+    --secondary: 40 25% 92%;
+    --secondary-foreground: 25 30% 25%;
+
+    --muted: 40 20% 90%;
+    --muted-foreground: 25 15% 45%;
+
+    --accent: 340 75% 55%;
+    --accent-foreground: 45 30% 99%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 45 30% 99%;
+
+    --border: 40 20% 88%;
+    --input: 45 25% 95%;
+    --ring: 25 95% 53%;
+
+    /* Score colors - slightly adjusted for light bg */
+    --score-high: 152 60% 40%;
+    --score-medium: 45 85% 45%;
+    --score-low: 25 90% 48%;
+    --score-critical: 0 72% 50%;
+
+    /* Glow effects - softer for light theme */
+    --glow-primary: 25 95% 53%;
+    --glow-success: 152 60% 40%;
+    --glow-warning: 45 85% 45%;
+
+    /* Theme-specific */
+    --theme-gradient-1: 25 95% 53%;
+    --theme-gradient-2: 340 75% 55%;
+    --theme-gradient-3: 45 85% 55%;
+    --noise-opacity: 0.025;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     THEME: Arctic (Light - Cool)
+     Crisp, clinical light theme with ice blue accents
+     Inspired by frozen landscapes and clear winter skies
+     ═══════════════════════════════════════════════════════════════════════════ */
+  [data-theme="arctic"] {
+    --background: 210 30% 98%;
+    --foreground: 215 35% 15%;
+
+    --card: 210 35% 100%;
+    --card-foreground: 215 35% 15%;
+
+    --popover: 210 30% 99%;
+    --popover-foreground: 215 35% 15%;
+
+    --primary: 205 85% 45%;
+    --primary-foreground: 210 30% 99%;
+
+    --secondary: 210 25% 93%;
+    --secondary-foreground: 215 30% 25%;
+
+    --muted: 210 20% 91%;
+    --muted-foreground: 215 15% 50%;
+
+    --accent: 175 70% 40%;
+    --accent-foreground: 210 30% 99%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 30% 99%;
+
+    --border: 210 25% 88%;
+    --input: 210 25% 96%;
+    --ring: 205 85% 45%;
+
+    /* Score colors */
+    --score-high: 160 60% 38%;
+    --score-medium: 45 80% 48%;
+    --score-low: 25 85% 50%;
+    --score-critical: 0 70% 52%;
+
+    /* Glow effects */
+    --glow-primary: 205 85% 45%;
+    --glow-success: 160 60% 38%;
+    --glow-warning: 45 80% 48%;
+
+    /* Theme-specific */
+    --theme-gradient-1: 205 85% 45%;
+    --theme-gradient-2: 175 70% 40%;
+    --theme-gradient-3: 195 75% 55%;
+    --noise-opacity: 0.02;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Outfit', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+
+  /* Code/mono elements */
+  code, .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Display font for special headings */
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  /* Subtle noise texture overlay - adapts to theme */
+  .noise-overlay {
+    position: relative;
+  }
+
+  .noise-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: var(--noise-opacity, 0.015);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Gradient mesh background - uses theme colors */
+  .mesh-gradient {
+    background:
+      radial-gradient(ellipse at 20% 20%, hsla(var(--theme-gradient-1), 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, hsla(var(--theme-gradient-2), 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 100%, hsla(var(--theme-gradient-3), 0.04) 0%, transparent 40%);
+  }
+
+  /* Light theme mesh - more subtle */
+  [data-theme="solar"] .mesh-gradient,
+  [data-theme="arctic"] .mesh-gradient {
+    background:
+      radial-gradient(ellipse at 20% 20%, hsla(var(--theme-gradient-1), 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, hsla(var(--theme-gradient-2), 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 100%, hsla(var(--theme-gradient-3), 0.03) 0%, transparent 40%);
+  }
+
+  /* Glow effects */
+  .glow-primary {
+    box-shadow:
+      0 0 20px hsla(var(--glow-primary), 0.15),
+      0 0 40px hsla(var(--glow-primary), 0.1);
+  }
+
+  /* Light themes need softer glows */
+  [data-theme="solar"] .glow-primary,
+  [data-theme="arctic"] .glow-primary {
+    box-shadow:
+      0 0 15px hsla(var(--glow-primary), 0.1),
+      0 0 30px hsla(var(--glow-primary), 0.05);
+  }
+
+  .glow-success {
+    box-shadow:
+      0 0 15px hsla(var(--glow-success), 0.2),
+      0 0 30px hsla(var(--glow-success), 0.1);
+  }
+
+  /* Score bar animations */
+  @keyframes scoreBarFill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .score-bar-animated {
+    animation: scoreBarFill 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transform-origin: left;
+  }
+
+  /* Stagger animations */
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    opacity: 0;
+  }
+
+  /* Pulse for loading states */
+  @keyframes subtlePulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  .animate-subtle-pulse {
+    animation: subtlePulse 2s ease-in-out infinite;
+  }
+
+  /* Shimmer effect for loading */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--secondary)) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Theme switcher animations */
+  @keyframes themeSwitch {
+    0% {
+      transform: scale(1) rotate(0deg);
+    }
+    50% {
+      transform: scale(0.9) rotate(180deg);
+    }
+    100% {
+      transform: scale(1) rotate(360deg);
+    }
+  }
+
+  .theme-switch-animate {
+    animation: themeSwitch 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Theme indicator dots */
+  .theme-dot {
+    @apply w-3 h-3 rounded-full transition-all duration-200;
+  }
+
+  .theme-dot-deep-space {
+    background: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(280 65% 55%) 100%);
+  }
+
+  .theme-dot-solar {
+    background: linear-gradient(135deg, hsl(25 95% 53%) 0%, hsl(340 75% 55%) 100%);
+  }
+
+  .theme-dot-arctic {
+    background: linear-gradient(135deg, hsl(205 85% 45%) 0%, hsl(175 70% 40%) 100%);
+  }
+}
+
+@layer utilities {
+  /* Text gradient - uses theme colors */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-card/80 backdrop-blur-md border border-border/50;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-0.5;
+    box-shadow:
+      0 8px 30px -10px hsla(var(--primary), 0.2),
+      0 4px 15px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Light theme hover - less intense shadows */
+  [data-theme="solar"] .hover-lift:hover,
+  [data-theme="arctic"] .hover-lift:hover {
+    box-shadow:
+      0 8px 30px -10px hsla(var(--primary), 0.15),
+      0 4px 15px -5px rgba(0, 0, 0, 0.1);
+  }
+}
