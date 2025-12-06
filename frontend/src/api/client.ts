@@ -4,6 +4,7 @@ import type {
   SessionInfo,
   ExtractionRequest,
   ExtractionResponse,
+  ManualAnalysisRequest,
   JobInfo,
   RankingResponse,
   TECCMDetail,
@@ -65,6 +66,21 @@ export async function startExtraction(data: ExtractionRequest): Promise<Extracti
     method: 'POST',
     body: JSON.stringify(data),
   })
+}
+
+export async function startManualAnalysis(data: ManualAnalysisRequest): Promise<ExtractionResponse> {
+  return request<ExtractionResponse>('/analysis/manual', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function getTechnologies(): Promise<{ technologies: string[] }> {
+  return request<{ technologies: string[] }>('/analysis/options/technologies')
+}
+
+export async function getServices(): Promise<{ services: string[] }> {
+  return request<{ services: string[] }>('/analysis/options/services')
 }
 
 export async function getJobs(): Promise<{ jobs: JobInfo[] }> {

@@ -9,12 +9,13 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 
 from ..models import (
     ExtractionRequest, ExtractionResponse,
+    ManualAnalysisRequest,
     JobInfo, JobListResponse,
     ScoreRequest, RankingResponse, TECCMDetailResponse,
     Weights
 )
 from ..db.storage import get_db
-from ..jobs.extraction import start_extraction_job, get_job_progress
+from ..jobs.extraction import start_extraction_job, start_manual_analysis_job, get_job_progress
 from ..services.scorer import calculate_ranking, get_teccm_detail
 from ..routers.auth import require_auth, SessionData
 from ..config import get_settings
@@ -114,6 +115,119 @@ async def start_extraction(
         job_id=job_id,
         message=f"Extraction started for {inc}"
     )
+
+
+@router.post("/manual", response_model=ExtractionResponse)
+async def start_manual_analysis(
+    request: ManualAnalysisRequest,
+    session: SessionData = Depends(require_auth)
+):
+    """
+    Start a manual analysis without an incident ticket.
+
+    Creates a virtual incident from the provided parameters and searches
+    for matching TECCMs in the time window.
+    """
+    from datetime import datetime
+
+    db = get_db()
+
+    # Parse and validate impact_time
+    try:
+        impact_dt = datetime.fromisoformat(request.impact_time.replace('Z', ''))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid impact_time format. Expected ISO format (YYYY-MM-DDTHH:MM)")
+
+    # Build display name for the job
+    if request.name:
+        display_name = f"Manual: {request.name}"
+    else:
+        display_name = f"Manual - {impact_dt.strftime('%Y-%m-%d %H:%M')}"
+
+    # Determine window from search_options or default
+    if request.search_options:
+        window_display = request.search_options.window_before
+    else:
+        window_display = "48h"
+
+    # Build search summary
+    summary_parts = []
+    if request.services:
+        summary_parts.append(f"{len(request.services)} servicios")
+    if request.hosts:
+        summary_parts.append(f"{len(request.hosts)} hosts")
+    if request.technologies:
+        summary_parts.append(f"{len(request.technologies)} techs")
+    if request.team:
+        summary_parts.append(f"equipo: {request.team}")
+    search_summary = ", ".join(summary_parts) if summary_parts else None
+
+    # Create job with manual type
+    job_id = db.create_job(
+        inc=display_name,
+        window=window_display,
+        job_type="manual",
+        username=session.username,
+        search_summary=search_summary
+    )
+    logger.info(f"Created manual analysis job {job_id}: {display_name} (user={session.username})")
+
+    # Build search_options dict
+    search_options_dict = None
+    if request.search_options:
+        search_options_dict = {
+            "window_before": request.search_options.window_before,
+            "window_after": request.search_options.window_after,
+            "include_active": request.search_options.include_active,
+            "include_no_end": request.search_options.include_no_end,
+            "include_external_maintenance": request.search_options.include_external_maintenance,
+            "max_results": request.search_options.max_results,
+            "extra_jql": request.search_options.extra_jql,
+            "project": request.search_options.project,
+        }
+
+    # Build virtual incident data
+    virtual_incident = {
+        "name": request.name,
+        "impact_time": request.impact_time,
+        "services": request.services,
+        "hosts": request.hosts,
+        "technologies": request.technologies,
+        "team": request.team,
+    }
+
+    # Start background job
+    start_manual_analysis_job(
+        job_id=job_id,
+        virtual_incident=virtual_incident,
+        username=session.username,
+        password=session.password,
+        search_options=search_options_dict
+    )
+
+    return ExtractionResponse(
+        job_id=job_id,
+        message=f"Manual analysis started: {display_name}"
+    )
+
+
+@router.get("/options/technologies")
+async def get_technologies(
+    session: SessionData = Depends(require_auth)
+):
+    """Get list of available technologies for manual analysis."""
+    from ..services.extractor import TECHNOLOGIES
+    return {"technologies": sorted(TECHNOLOGIES)}
+
+
+@router.get("/options/services")
+async def get_services(
+    session: SessionData = Depends(require_auth)
+):
+    """Get list of available service names for manual analysis."""
+    from ..services.extractor import SERVICE_SYNONYMS
+    # Return the canonical service names (keys of the synonyms dict)
+    return {"services": sorted(SERVICE_SYNONYMS.keys())}
 
 
 @router.get("/jobs", response_model=JobListResponse)

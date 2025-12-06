@@ -68,6 +68,17 @@ class ExtractionRequest(BaseModel):
     search_options: Optional[SearchOptions] = Field(default=None, description="Opciones avanzadas de búsqueda")
 
 
+class ManualAnalysisRequest(BaseModel):
+    """Request for manual analysis without an incident ticket."""
+    name: Optional[str] = Field(default=None, description="Nombre opcional para identificar el análisis")
+    impact_time: str = Field(..., description="Fecha/hora del impacto en formato ISO (YYYY-MM-DDTHH:MM)")
+    services: List[str] = Field(default_factory=list, description="Servicios afectados")
+    hosts: List[str] = Field(default_factory=list, description="Hosts afectados")
+    technologies: List[str] = Field(default_factory=list, description="Tecnologías involucradas")
+    team: Optional[str] = Field(default=None, description="Equipo responsable")
+    search_options: Optional[SearchOptions] = Field(default=None, description="Opciones de búsqueda de TECCMs")
+
+
 class ExtractionResponse(BaseModel):
     job_id: str
     message: str

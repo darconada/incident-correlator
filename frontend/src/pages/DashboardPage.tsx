@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Plus, Loader2, RefreshCw, Check, Settings2 } from 'lucide-react'
+import { Search, Clock, Plus, Loader2, RefreshCw, Check, Settings2, FileEdit, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,8 +24,8 @@ import {
 } from '@/components/ui/dialog'
 import { Header } from '@/components/Header'
 import { JobCard } from '@/components/JobCard'
-import { startExtraction, getJobs, deleteJob } from '@/api/client'
-import type { JobInfo, SearchOptions } from '@/types'
+import { startExtraction, startManualAnalysis, getJobs, deleteJob, getTechnologies, getServices } from '@/api/client'
+import type { JobInfo, SearchOptions, ManualAnalysisRequest } from '@/types'
 
 interface DashboardPageProps {
   username?: string
@@ -69,11 +69,35 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const [advancedCustomBefore, setAdvancedCustomBefore] = useState('')
   const [showAdvancedCustomBefore, setShowAdvancedCustomBefore] = useState(false)
 
+  // Manual analysis modal state
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualName, setManualName] = useState('')
+  const [manualImpactTime, setManualImpactTime] = useState('')
+  const [manualServices, setManualServices] = useState<string[]>([])
+  const [manualHosts, setManualHosts] = useState<string[]>([])
+  const [manualTechnologies, setManualTechnologies] = useState<string[]>([])
+  const [manualTeam, setManualTeam] = useState('')
+  const [manualHostInput, setManualHostInput] = useState('')
+  const [manualSearchOptions, setManualSearchOptions] = useState<SearchOptions>(DEFAULT_SEARCH_OPTIONS)
+
   // Fetch jobs list
   const { data: jobsData, refetch: refetchJobs } = useQuery({
     queryKey: ['jobs'],
     queryFn: getJobs,
     refetchInterval: pollingJobIds.length > 0 ? 3000 : false,
+  })
+
+  // Fetch available technologies and services for manual analysis
+  const { data: techData } = useQuery({
+    queryKey: ['technologies'],
+    queryFn: getTechnologies,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  })
+
+  const { data: servicesData } = useQuery({
+    queryKey: ['services'],
+    queryFn: getServices,
+    staleTime: 1000 * 60 * 60, // 1 hour
   })
 
   // Poll individual running jobs
@@ -93,6 +117,16 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
       setIncInput('')
+    },
+  })
+
+  // Start manual analysis mutation
+  const manualMutation = useMutation({
+    mutationFn: startManualAnalysis,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      resetManualForm()
+      setShowManualModal(false)
     },
   })
 
@@ -164,6 +198,69 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
       window_before: getEffectiveWindow(),
     })
     setShowAdvancedModal(true)
+  }
+
+  const resetManualForm = () => {
+    setManualName('')
+    setManualImpactTime('')
+    setManualServices([])
+    setManualHosts([])
+    setManualTechnologies([])
+    setManualTeam('')
+    setManualHostInput('')
+    setManualSearchOptions(DEFAULT_SEARCH_OPTIONS)
+  }
+
+  const openManualModal = () => {
+    // Set default impact time to now
+    const now = new Date()
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+    setManualImpactTime(now.toISOString().slice(0, 16))
+    setShowManualModal(true)
+  }
+
+  const handleManualSubmit = () => {
+    if (!manualImpactTime) return
+
+    const request: ManualAnalysisRequest = {
+      name: manualName || undefined,
+      impact_time: manualImpactTime,
+      services: manualServices,
+      hosts: manualHosts,
+      technologies: manualTechnologies,
+      team: manualTeam || undefined,
+      search_options: manualSearchOptions,
+    }
+
+    manualMutation.mutate(request)
+  }
+
+  const addHost = () => {
+    const host = manualHostInput.trim()
+    if (host && !manualHosts.includes(host)) {
+      setManualHosts([...manualHosts, host])
+      setManualHostInput('')
+    }
+  }
+
+  const removeHost = (host: string) => {
+    setManualHosts(manualHosts.filter(h => h !== host))
+  }
+
+  const toggleService = (service: string) => {
+    if (manualServices.includes(service)) {
+      setManualServices(manualServices.filter(s => s !== service))
+    } else {
+      setManualServices([...manualServices, service])
+    }
+  }
+
+  const toggleTechnology = (tech: string) => {
+    if (manualTechnologies.includes(tech)) {
+      setManualTechnologies(manualTechnologies.filter(t => t !== tech))
+    } else {
+      setManualTechnologies([...manualTechnologies, tech])
+    }
   }
 
   const handleJobClick = (job: JobInfo) => {
@@ -262,41 +359,53 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-between items-center">
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={openAdvancedModal}
-                    disabled={
-                      extractMutation.isPending ||
-                      !incInput.trim() ||
-                      !incInput.toUpperCase().startsWith('INC-')
-                    }
+                    variant="ghost"
+                    onClick={openManualModal}
+                    disabled={extractMutation.isPending || manualMutation.isPending}
+                    className="text-muted-foreground"
                   >
-                    <Settings2 className="w-4 h-4" />
-                    Avanzado
+                    <FileEdit className="w-4 h-4" />
+                    Analisis Manual
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={
-                      extractMutation.isPending ||
-                      !incInput.trim() ||
-                      !incInput.toUpperCase().startsWith('INC-') ||
-                      (showCustomInput && (!customHours || parseInt(customHours) < 1))
-                    }
-                  >
-                    {extractMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Iniciando...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="w-4 h-4" />
-                        Analizar
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={openAdvancedModal}
+                      disabled={
+                        extractMutation.isPending ||
+                        !incInput.trim() ||
+                        !incInput.toUpperCase().startsWith('INC-')
+                      }
+                    >
+                      <Settings2 className="w-4 h-4" />
+                      Avanzado
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={
+                        extractMutation.isPending ||
+                        !incInput.trim() ||
+                        !incInput.toUpperCase().startsWith('INC-') ||
+                        (showCustomInput && (!customHours || parseInt(customHours) < 1))
+                      }
+                    >
+                      {extractMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Iniciando...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4" />
+                          Analizar
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {extractMutation.isError && (
@@ -637,6 +746,223 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               disabled={extractMutation.isPending}
             >
               {extractMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Iniciando...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Analizar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Analysis Modal */}
+      <Dialog open={showManualModal} onOpenChange={setShowManualModal}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <FileEdit className="w-5 h-5" />
+              Analisis Manual
+            </DialogTitle>
+            <DialogDescription>
+              Analiza TECCMs sin un ticket de incidente. Define manualmente los parametros de busqueda.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-2">
+            {/* Row 1: Name and Impact Time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="manual_name" className="text-xs text-muted-foreground">
+                  Nombre (opcional)
+                </Label>
+                <Input
+                  id="manual_name"
+                  placeholder="Ej: Problema DNS produccion"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="manual_impact" className="text-xs text-muted-foreground">
+                  Fecha/Hora del impacto *
+                </Label>
+                <Input
+                  id="manual_impact"
+                  type="datetime-local"
+                  value={manualImpactTime}
+                  onChange={(e) => setManualImpactTime(e.target.value)}
+                  className="h-8"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Services */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Servicios afectados ({manualServices.length} seleccionados)
+              </Label>
+              <div className="flex flex-wrap gap-1.5 p-2 bg-secondary/30 rounded-md max-h-24 overflow-y-auto">
+                {servicesData?.services.map((service) => (
+                  <button
+                    key={service}
+                    type="button"
+                    onClick={() => toggleService(service)}
+                    className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                      manualServices.includes(service)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary hover:bg-secondary/80'
+                    }`}
+                  >
+                    {service}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 3: Technologies */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Tecnologias ({manualTechnologies.length} seleccionadas)
+              </Label>
+              <div className="flex flex-wrap gap-1.5 p-2 bg-secondary/30 rounded-md max-h-24 overflow-y-auto">
+                {techData?.technologies.map((tech) => (
+                  <button
+                    key={tech}
+                    type="button"
+                    onClick={() => toggleTechnology(tech)}
+                    className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                      manualTechnologies.includes(tech)
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-secondary hover:bg-secondary/80'
+                    }`}
+                  >
+                    {tech}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 4: Hosts */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Hosts afectados ({manualHosts.length})
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Añadir hostname..."
+                  value={manualHostInput}
+                  onChange={(e) => setManualHostInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addHost())}
+                  className="h-8 flex-1"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={addHost} className="h-8">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {manualHosts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {manualHosts.map((host) => (
+                    <span
+                      key={host}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded"
+                    >
+                      {host}
+                      <button type="button" onClick={() => removeHost(host)} className="hover:text-red-400">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Row 5: Team and Window */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="manual_team" className="text-xs text-muted-foreground">
+                  Equipo (opcional)
+                </Label>
+                <Input
+                  id="manual_team"
+                  placeholder="Ej: Platform Team"
+                  value={manualTeam}
+                  onChange={(e) => setManualTeam(e.target.value)}
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Ventana de busqueda</Label>
+                <Select
+                  value={manualSearchOptions.window_before}
+                  onValueChange={(v) => setManualSearchOptions({ ...manualSearchOptions, window_before: v })}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12h">12 horas</SelectItem>
+                    <SelectItem value="24h">24 horas</SelectItem>
+                    <SelectItem value="48h">48 horas</SelectItem>
+                    <SelectItem value="72h">72 horas</SelectItem>
+                    <SelectItem value="7d">7 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Row 6: Search toggles */}
+            <div className="flex items-center gap-4 pt-2 border-t">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="manual_include_active"
+                  checked={manualSearchOptions.include_active}
+                  onCheckedChange={(v) => setManualSearchOptions({ ...manualSearchOptions, include_active: v })}
+                />
+                <Label htmlFor="manual_include_active" className="text-xs">Activos</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="manual_include_no_end"
+                  checked={manualSearchOptions.include_no_end}
+                  onCheckedChange={(v) => setManualSearchOptions({ ...manualSearchOptions, include_no_end: v })}
+                />
+                <Label htmlFor="manual_include_no_end" className="text-xs">Sin cerrar</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="manual_include_ext"
+                  checked={manualSearchOptions.include_external_maintenance}
+                  onCheckedChange={(v) => setManualSearchOptions({ ...manualSearchOptions, include_external_maintenance: v })}
+                />
+                <Label htmlFor="manual_include_ext" className="text-xs">Ext. Maint.</Label>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-shrink-0 gap-2 pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                resetManualForm()
+              }}
+            >
+              Limpiar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleManualSubmit}
+              disabled={manualMutation.isPending || !manualImpactTime}
+            >
+              {manualMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Iniciando...

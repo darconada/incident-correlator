@@ -36,6 +36,16 @@ export interface ExtractionRequest {
   search_options?: SearchOptions
 }
 
+export interface ManualAnalysisRequest {
+  name?: string
+  impact_time: string
+  services: string[]
+  hosts: string[]
+  technologies: string[]
+  team?: string
+  search_options?: SearchOptions
+}
+
 export interface ExtractionResponse {
   job_id: string
   message: string

@@ -1032,3 +1032,154 @@ def extract_inc_with_teccms(
         "extraction_info": extraction_info,
         "tickets": results
     }
+
+
+def extract_teccms_for_manual_analysis(
+    jira: JIRA,
+    virtual_incident: Dict[str, Any],
+    progress_callback: Callable[[int, int], None] = None,
+    num_threads: int = DEFAULT_THREADS,
+    search_options: Dict[str, Any] = None
+) -> Dict[str, Any]:
+    """
+    Extrae TECCMs para un análisis manual sin ticket de incidente.
+
+    Args:
+        jira: Cliente JIRA conectado
+        virtual_incident: Dict con datos del incidente virtual:
+            - impact_time: str (ISO format)
+            - services: List[str]
+            - hosts: List[str]
+            - technologies: List[str]
+            - team: Optional[str]
+            - name: Optional[str]
+        progress_callback: Función callback(current, total) para reportar progreso
+        num_threads: Número de hilos para extracción paralela
+        search_options: Dict con opciones avanzadas de búsqueda
+
+    Returns:
+        Dict con extraction_info y tickets (incluyendo el incidente virtual)
+    """
+    # Parse impact time
+    impact_time_str = virtual_incident.get("impact_time")
+    try:
+        impact_time = datetime.fromisoformat(impact_time_str.replace('Z', ''))
+    except (ValueError, AttributeError) as e:
+        raise ValueError(f"Invalid impact_time format: {impact_time_str}")
+
+    # Construir opciones de búsqueda
+    if search_options:
+        include_active = search_options.get("include_active")
+        include_no_end = search_options.get("include_no_end")
+        include_external_maintenance = search_options.get("include_external_maintenance")
+
+        options = SearchOptions(
+            window_before=search_options.get("window_before", "48h"),
+            window_after=search_options.get("window_after", "2h"),
+            include_active=include_active if include_active is not None else True,
+            include_no_end=include_no_end if include_no_end is not None else True,
+            include_external_maintenance=include_external_maintenance if include_external_maintenance is not None else False,
+            max_results=search_options.get("max_results", 500),
+            extra_jql=search_options.get("extra_jql", ""),
+            project=search_options.get("project", "TECCM"),
+        )
+        window_str = search_options.get("window_before", "48h")
+    else:
+        options = SearchOptions()
+        window_str = "48h"
+
+    # Crear el "incidente virtual" como un ticket sintético
+    # Este formato es compatible con lo que espera el scorer
+    virtual_inc_data = {
+        "issue_key": f"MANUAL-{impact_time.strftime('%Y%m%d%H%M')}",
+        "ticket_type": "INCIDENT",
+        "summary": virtual_incident.get("name") or f"Análisis manual - {impact_time.strftime('%Y-%m-%d %H:%M')}",
+        "status": "Virtual",
+        "resolution": None,
+        "assignee": None,
+        "team": virtual_incident.get("team"),
+        "times": {
+            "created_at": impact_time.isoformat(),
+            "first_impact_time": impact_time.isoformat(),
+            "resolved_at": None,
+        },
+        "services": virtual_incident.get("services", []),
+        "hosts": virtual_incident.get("hosts", []),
+        "technologies": virtual_incident.get("technologies", []),
+        "live_intervals": [],
+        "raw_fields": {},
+    }
+
+    logger.info(f"Manual analysis for impact_time={impact_time.isoformat()}")
+    logger.info(f"Virtual incident: services={virtual_inc_data['services']}, hosts={virtual_inc_data['hosts']}, technologies={virtual_inc_data['technologies']}")
+
+    # Buscar TECCMs en la ventana
+    logger.info(f"Searching TECCMs with options: window_before={window_str}, include_active={options.include_active}, include_no_end={options.include_no_end}")
+    teccm_keys = search_teccm_in_window(jira, impact_time.isoformat(), options=options)
+
+    logger.info(f"Found {len(teccm_keys)} TECCMs")
+
+    # Reportar progreso inicial
+    total = 1 + len(teccm_keys)
+    if progress_callback:
+        progress_callback(1, total)
+
+    # Extraer TECCMs en paralelo
+    results = [virtual_inc_data]  # Empezamos con el incidente virtual
+
+    if teccm_keys:
+        actual_threads = min(num_threads, len(teccm_keys))
+
+        def adjusted_callback(current, total_teccms):
+            if progress_callback:
+                progress_callback(1 + current, total)
+
+        teccm_results = extract_tickets_parallel(
+            jira,
+            teccm_keys,
+            actual_threads,
+            adjusted_callback
+        )
+        results.extend(teccm_results)
+
+    # Progreso final
+    if progress_callback:
+        progress_callback(total, total)
+
+    logger.info(f"Manual analysis: extracted {len(results)} tickets ({len(results) - 1} TECCMs)")
+
+    # Información de extracción
+    extraction_info = {
+        "version": VERSION,
+        "extracted_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "total_tickets": len(results),
+        "source_mode": "manual",
+        "impact_time": impact_time.isoformat(),
+        "window": window_str,
+        "threads_used": min(num_threads, max(1, len(teccm_keys))),
+        "virtual_incident": {
+            "name": virtual_incident.get("name"),
+            "services": virtual_incident.get("services", []),
+            "hosts": virtual_incident.get("hosts", []),
+            "technologies": virtual_incident.get("technologies", []),
+            "team": virtual_incident.get("team"),
+        }
+    }
+
+    # Añadir opciones de búsqueda
+    if search_options:
+        extraction_info["search_options"] = {
+            "window_before": search_options.get("window_before", "48h"),
+            "window_after": search_options.get("window_after", "2h"),
+            "include_active": options.include_active,
+            "include_no_end": options.include_no_end,
+            "include_external_maintenance": options.include_external_maintenance,
+            "max_results": options.max_results,
+            "extra_jql": options.extra_jql or None,
+            "project": options.project,
+        }
+
+    return {
+        "extraction_info": extraction_info,
+        "tickets": results
+    }
