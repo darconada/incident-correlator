@@ -85,7 +85,7 @@ npm run dev
 
 ```env
 # Jira (opcional - se pueden introducir en la UI)
-JIRA_URL=https://hosting-jira.1and1.org
+JIRA_URL=https://URL-JIRA
 JIRA_USER=tu_usuario
 JIRA_PASSWORD=tu_password
 
