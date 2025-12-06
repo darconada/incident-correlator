@@ -65,6 +65,8 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   // Advanced search modal state
   const [showAdvancedModal, setShowAdvancedModal] = useState(false)
   const [advancedOptions, setAdvancedOptions] = useState<SearchOptions>(DEFAULT_SEARCH_OPTIONS)
+  const [advancedCustomBefore, setAdvancedCustomBefore] = useState('')
+  const [showAdvancedCustomBefore, setShowAdvancedCustomBefore] = useState(false)
 
   // Fetch jobs list
   const { data: jobsData, refetch: refetchJobs } = useQuery({
@@ -419,23 +421,68 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                 <Label htmlFor="window_before" className="text-xs text-muted-foreground">
                   Ventana antes
                 </Label>
-                <Select
-                  value={advancedOptions.window_before}
-                  onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_before: v })}
-                >
-                  <SelectTrigger id="window_before" className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="12h">12 horas</SelectItem>
-                    <SelectItem value="24h">24 horas</SelectItem>
-                    <SelectItem value="48h">48 horas</SelectItem>
-                    <SelectItem value="72h">72 horas</SelectItem>
-                    <SelectItem value="7d">7 dias</SelectItem>
-                    <SelectItem value="14d">14 dias</SelectItem>
-                    <SelectItem value="30d">30 dias</SelectItem>
-                  </SelectContent>
-                </Select>
+                {showAdvancedCustomBefore ? (
+                  <div className="flex gap-1">
+                    <div className="relative flex-1">
+                      <Input
+                        type="number"
+                        min="1"
+                        max="720"
+                        placeholder="Horas"
+                        value={advancedCustomBefore}
+                        onChange={(e) => {
+                          setAdvancedCustomBefore(e.target.value)
+                          if (e.target.value) {
+                            setAdvancedOptions({ ...advancedOptions, window_before: `${e.target.value}h` })
+                          }
+                        }}
+                        className="h-8 pr-6"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        h
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setShowAdvancedCustomBefore(false)
+                        setAdvancedCustomBefore('')
+                        setAdvancedOptions({ ...advancedOptions, window_before: '48h' })
+                      }}
+                      title="Volver a opciones predefinidas"
+                    >
+                      <Clock className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={advancedOptions.window_before}
+                    onValueChange={(v) => {
+                      if (v === 'custom') {
+                        setShowAdvancedCustomBefore(true)
+                      } else {
+                        setAdvancedOptions({ ...advancedOptions, window_before: v })
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="window_before" className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12h">12 horas</SelectItem>
+                      <SelectItem value="24h">24 horas</SelectItem>
+                      <SelectItem value="48h">48 horas</SelectItem>
+                      <SelectItem value="72h">72 horas</SelectItem>
+                      <SelectItem value="7d">7 dias</SelectItem>
+                      <SelectItem value="14d">14 dias</SelectItem>
+                      <SelectItem value="30d">30 dias</SelectItem>
+                      <SelectItem value="custom">Personalizado...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="window_after" className="text-xs text-muted-foreground">
@@ -562,7 +609,11 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setAdvancedOptions(DEFAULT_SEARCH_OPTIONS)}
+              onClick={() => {
+                setAdvancedOptions(DEFAULT_SEARCH_OPTIONS)
+                setShowAdvancedCustomBefore(false)
+                setAdvancedCustomBefore('')
+              }}
             >
               Restaurar
             </Button>
