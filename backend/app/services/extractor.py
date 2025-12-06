@@ -1097,11 +1097,11 @@ def extract_teccms_for_manual_analysis(
         "status": "Virtual",
         "resolution": None,
         "assignee": None,
-        "team": virtual_incident.get("team"),
         "times": {
             "created_at": impact_time.isoformat(),
             "first_impact_time": impact_time.isoformat(),
             "resolved_at": None,
+            "live_intervals": [],
         },
         # Formato compatible con el scorer (usa 'entities')
         "entities": {
@@ -1109,7 +1109,11 @@ def extract_teccms_for_manual_analysis(
             "hosts": virtual_incident.get("hosts", []),
             "technologies": virtual_incident.get("technologies", []),
         },
-        "live_intervals": [],
+        # Organización
+        "organization": {
+            "team": virtual_incident.get("team"),
+            "people_involved": [],
+        },
         "raw_fields": {},
     }
 
