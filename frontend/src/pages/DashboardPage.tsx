@@ -362,10 +362,9 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                 <div className="flex justify-between items-center">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     onClick={openManualModal}
                     disabled={extractMutation.isPending || manualMutation.isPending}
-                    className="text-muted-foreground"
                   >
                     <FileEdit className="w-4 h-4" />
                     Analisis Manual
