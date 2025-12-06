@@ -401,108 +401,91 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
 
       {/* Advanced Search Modal */}
       <Dialog open={showAdvancedModal} onOpenChange={setShowAdvancedModal}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Settings2 className="w-5 h-5" />
               Busqueda Avanzada
             </DialogTitle>
             <DialogDescription>
-              Personaliza los parametros de busqueda de TECCMs para {incInput.toUpperCase() || 'el incidente'}
+              Parametros de busqueda para {incInput.toUpperCase() || 'el incidente'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            {/* Time Windows */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">Ventana Temporal</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="window_before" className="text-xs text-muted-foreground">
-                    Antes del INC
-                  </Label>
-                  <Select
-                    value={advancedOptions.window_before}
-                    onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_before: v })}
-                  >
-                    <SelectTrigger id="window_before">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="12h">12 horas</SelectItem>
-                      <SelectItem value="24h">24 horas</SelectItem>
-                      <SelectItem value="48h">48 horas</SelectItem>
-                      <SelectItem value="72h">72 horas</SelectItem>
-                      <SelectItem value="7d">7 dias</SelectItem>
-                      <SelectItem value="14d">14 dias</SelectItem>
-                      <SelectItem value="30d">30 dias</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="window_after" className="text-xs text-muted-foreground">
-                    Despues del INC
-                  </Label>
-                  <Select
-                    value={advancedOptions.window_after}
-                    onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_after: v })}
-                  >
-                    <SelectTrigger id="window_after">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0h">Sin margen</SelectItem>
-                      <SelectItem value="1h">1 hora</SelectItem>
-                      <SelectItem value="2h">2 horas</SelectItem>
-                      <SelectItem value="4h">4 horas</SelectItem>
-                      <SelectItem value="8h">8 horas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-2">
+            {/* Row 1: Time Windows */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="window_before" className="text-xs text-muted-foreground">
+                  Ventana antes
+                </Label>
+                <Select
+                  value={advancedOptions.window_before}
+                  onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_before: v })}
+                >
+                  <SelectTrigger id="window_before" className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12h">12 horas</SelectItem>
+                    <SelectItem value="24h">24 horas</SelectItem>
+                    <SelectItem value="48h">48 horas</SelectItem>
+                    <SelectItem value="72h">72 horas</SelectItem>
+                    <SelectItem value="7d">7 dias</SelectItem>
+                    <SelectItem value="14d">14 dias</SelectItem>
+                    <SelectItem value="30d">30 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="window_after" className="text-xs text-muted-foreground">
+                  Ventana despues
+                </Label>
+                <Select
+                  value={advancedOptions.window_after}
+                  onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_after: v })}
+                >
+                  <SelectTrigger id="window_after" className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0h">Sin margen</SelectItem>
+                    <SelectItem value="1h">1 hora</SelectItem>
+                    <SelectItem value="2h">2 horas</SelectItem>
+                    <SelectItem value="4h">4 horas</SelectItem>
+                    <SelectItem value="8h">8 horas</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Search Types */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">Tipos de Busqueda</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="include_active" className="text-sm">TECCMs activos</Label>
-                    <p className="text-xs text-muted-foreground">Cambios que estaban en curso al momento del INC</p>
-                  </div>
-                  <Switch
-                    id="include_active"
-                    checked={advancedOptions.include_active}
-                    onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_active: v })}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="include_no_end" className="text-sm">TECCMs sin cerrar</Label>
-                    <p className="text-xs text-muted-foreground">Cambios que empezaron antes y siguen abiertos</p>
-                  </div>
-                  <Switch
-                    id="include_no_end"
-                    checked={advancedOptions.include_no_end}
-                    onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_no_end: v })}
-                  />
-                </div>
+            {/* Row 2: Search Types + Max Results */}
+            <div className="grid grid-cols-3 gap-3 items-end">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="include_active"
+                  checked={advancedOptions.include_active}
+                  onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_active: v })}
+                />
+                <Label htmlFor="include_active" className="text-xs">Activos</Label>
               </div>
-            </div>
-
-            {/* Limits */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium">Limites</h4>
-              <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="include_no_end"
+                  checked={advancedOptions.include_no_end}
+                  onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_no_end: v })}
+                />
+                <Label htmlFor="include_no_end" className="text-xs">Sin cerrar</Label>
+              </div>
+              <div className="space-y-1">
                 <Label htmlFor="max_results" className="text-xs text-muted-foreground">
-                  Maximo de resultados por busqueda
+                  Max resultados
                 </Label>
                 <Select
                   value={String(advancedOptions.max_results)}
                   onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, max_results: parseInt(v) })}
                 >
-                  <SelectTrigger id="max_results">
+                  <SelectTrigger id="max_results" className="h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -516,96 +499,75 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               </div>
             </div>
 
-            {/* Extra JQL */}
-            <div className="space-y-2">
-              <Label htmlFor="extra_jql" className="text-sm font-medium">Filtro JQL adicional</Label>
-              <Input
-                id="extra_jql"
-                placeholder='AND assignee = "usuario" AND summary ~ "deploy"'
-                value={advancedOptions.extra_jql}
-                onChange={(e) => setAdvancedOptions({ ...advancedOptions, extra_jql: e.target.value })}
-                className="font-mono text-xs"
-              />
-              <p className="text-xs text-muted-foreground">
-                Filtro JQL que se anadira a todas las busquedas. Debe empezar con AND.
-              </p>
-            </div>
-
-            {/* Project */}
-            <div className="space-y-2">
-              <Label htmlFor="project" className="text-xs text-muted-foreground">
-                Proyecto Jira
-              </Label>
-              <Input
-                id="project"
-                value={advancedOptions.project}
-                onChange={(e) => setAdvancedOptions({ ...advancedOptions, project: e.target.value })}
-                className="font-mono"
-              />
+            {/* Row 3: Extra JQL + Project */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="extra_jql" className="text-xs text-muted-foreground">Filtro JQL extra</Label>
+                <Input
+                  id="extra_jql"
+                  placeholder='AND assignee = "user"'
+                  value={advancedOptions.extra_jql}
+                  onChange={(e) => setAdvancedOptions({ ...advancedOptions, extra_jql: e.target.value })}
+                  className="font-mono text-xs h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="project" className="text-xs text-muted-foreground">
+                  Proyecto
+                </Label>
+                <Input
+                  id="project"
+                  value={advancedOptions.project}
+                  onChange={(e) => setAdvancedOptions({ ...advancedOptions, project: e.target.value })}
+                  className="font-mono h-8"
+                />
+              </div>
             </div>
 
             {/* JQL Preview */}
-            <div className="space-y-3 pt-4 border-t">
-              <h4 className="text-sm font-medium flex items-center gap-2">
-                <span className="text-muted-foreground">Vista previa de consultas JQL</span>
+            <div className="space-y-2 pt-3 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Vista previa JQL</span>
                 <span className="text-xs bg-secondary px-2 py-0.5 rounded">
-                  {1 + (advancedOptions.include_active ? 1 : 0) + (advancedOptions.include_no_end ? 1 : 0)} búsquedas
+                  {1 + (advancedOptions.include_active ? 1 : 0) + (advancedOptions.include_no_end ? 1 : 0)} consultas
                 </span>
-              </h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              </div>
+              <div className="space-y-1.5 text-[11px]">
                 {/* Query 1: Window */}
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-cyan-400">1. TECCMs en ventana temporal</p>
-                  <code className="block p-2 rounded bg-secondary/50 text-xs font-mono break-all text-muted-foreground">
-                    project = {advancedOptions.project} AND
-                    "Start Date/Time" &gt;= "<span className="text-cyan-400">[INC - {advancedOptions.window_before}]</span>" AND
-                    "Start Date/Time" &lt;= "<span className="text-cyan-400">[INC + {advancedOptions.window_after}]</span>"
-                    {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
-                  </code>
+                <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
+                  <span className="text-cyan-400 font-semibold">1.</span> project={advancedOptions.project} AND Start &gt;= <span className="text-cyan-400">[INC-{advancedOptions.window_before}]</span> AND Start &lt;= <span className="text-cyan-400">[INC+{advancedOptions.window_after}]</span>
+                  {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
                 </div>
 
                 {/* Query 2: Active */}
                 {advancedOptions.include_active && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-violet-400">2. TECCMs activos al momento del INC</p>
-                    <code className="block p-2 rounded bg-secondary/50 text-xs font-mono break-all text-muted-foreground">
-                      project = {advancedOptions.project} AND
-                      "Start Date/Time" &lt;= "<span className="text-violet-400">[INC]</span>" AND
-                      "End Date/Time" &gt;= "<span className="text-violet-400">[INC]</span>"
-                      {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
-                    </code>
+                  <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
+                    <span className="text-violet-400 font-semibold">2.</span> project={advancedOptions.project} AND Start &lt;= <span className="text-violet-400">[INC]</span> AND End &gt;= <span className="text-violet-400">[INC]</span>
+                    {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
                   </div>
                 )}
 
                 {/* Query 3: No end */}
                 {advancedOptions.include_no_end && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-emerald-400">
-                      {advancedOptions.include_active ? '3' : '2'}. TECCMs sin fecha de fin
-                    </p>
-                    <code className="block p-2 rounded bg-secondary/50 text-xs font-mono break-all text-muted-foreground">
-                      project = {advancedOptions.project} AND
-                      "Start Date/Time" &lt;= "<span className="text-emerald-400">[INC]</span>" AND
-                      "End Date/Time" IS EMPTY
-                      {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
-                    </code>
+                  <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
+                    <span className="text-emerald-400 font-semibold">{advancedOptions.include_active ? '3' : '2'}.</span> project={advancedOptions.project} AND Start &lt;= <span className="text-emerald-400">[INC]</span> AND End IS EMPTY
+                    {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
                   </div>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Cada búsqueda devuelve hasta {advancedOptions.max_results} resultados. Los duplicados se eliminan automáticamente.
-              </p>
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex-shrink-0 gap-2 pt-2 border-t">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setAdvancedOptions(DEFAULT_SEARCH_OPTIONS)}
             >
               Restaurar
             </Button>
             <Button
+              size="sm"
               onClick={handleAdvancedSubmit}
               disabled={extractMutation.isPending}
             >
@@ -617,7 +579,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               ) : (
                 <>
                   <Search className="w-4 h-4" />
-                  Analizar con opciones
+                  Analizar
                 </>
               )}
             </Button>
