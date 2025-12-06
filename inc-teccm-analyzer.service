@@ -1,0 +1,21 @@
+[Unit]
+Description=INC-TECCM Correlation Analyzer
+After=network.target
+
+[Service]
+Type=simple
+User=darconada@arsyslan.es
+Group=usuarios del dominio@arsyslan.es
+WorkingDirectory=/home/darconada@arsyslan.es/apps/inc-teccm-analyzer/backend
+Environment="PATH=/home/darconada@arsyslan.es/apps/inc-teccm-analyzer/backend/venv/bin"
+ExecStart=/home/darconada@arsyslan.es/apps/inc-teccm-analyzer/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 5178
+Restart=always
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=inc-teccm-analyzer
+
+[Install]
+WantedBy=multi-user.target
