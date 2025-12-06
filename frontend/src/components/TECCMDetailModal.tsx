@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScoreBar } from '@/components/ScoreBar'
-import { cn, formatDate, getJiraUrl } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import type { TECCMDetail } from '@/types'
 
 interface TECCMDetailModalProps {

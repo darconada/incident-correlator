@@ -5,7 +5,7 @@ Handles weights and other settings.
 
 from fastapi import APIRouter, Depends
 
-from ..models import Weights, WeightsConfig, WeightsUpdateRequest, AppConfig, AppConfigUpdateRequest
+from ..models import Weights, WeightsConfig, WeightsUpdateRequest, AppConfig, AppConfigUpdateRequest, Penalties, Bonuses, Thresholds
 from ..db.storage import get_db
 from ..routers.auth import require_auth, SessionData
 
@@ -67,6 +67,9 @@ async def get_app_config(session: SessionData = Depends(require_auth)):
     db = get_db()
     return AppConfig(
         weights=db.get_weights(),
+        penalties=db.get_penalties(),
+        bonuses=db.get_bonuses(),
+        thresholds=db.get_thresholds(),
         top_results=db.get_top_results()
     )
 
@@ -84,11 +87,23 @@ async def update_app_config(
     if request.weights:
         db.set_weights(request.weights)
 
+    if request.penalties:
+        db.set_penalties(request.penalties)
+
+    if request.bonuses:
+        db.set_bonuses(request.bonuses)
+
+    if request.thresholds:
+        db.set_thresholds(request.thresholds)
+
     if request.top_results is not None:
         db.set_top_results(request.top_results)
 
     return AppConfig(
         weights=db.get_weights(),
+        penalties=db.get_penalties(),
+        bonuses=db.get_bonuses(),
+        thresholds=db.get_thresholds(),
         top_results=db.get_top_results()
     )
 
@@ -103,10 +118,20 @@ async def reset_app_config(session: SessionData = Depends(require_auth)):
     settings = get_settings()
 
     default_weights = Weights()
+    default_penalties = Penalties()
+    default_bonuses = Bonuses()
+    default_thresholds = Thresholds()
+
     db.set_weights(default_weights)
+    db.set_penalties(default_penalties)
+    db.set_bonuses(default_bonuses)
+    db.set_thresholds(default_thresholds)
     db.set_top_results(settings.default_top_results)
 
     return AppConfig(
         weights=default_weights,
+        penalties=default_penalties,
+        bonuses=default_bonuses,
+        thresholds=default_thresholds,
         top_results=settings.default_top_results
     )

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Plus, Loader2, RefreshCw } from 'lucide-react'
+import { Search, Clock, Plus, Loader2, RefreshCw, Check } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { Header } from '@/components/Header'
 import { JobCard } from '@/components/JobCard'
-import { startExtraction, getJobs, deleteJob, getJob } from '@/api/client'
+import { startExtraction, getJobs, deleteJob } from '@/api/client'
 import type { JobInfo } from '@/types'
 
 interface DashboardPageProps {
@@ -27,7 +27,8 @@ const WINDOW_OPTIONS = [
   { value: '24h', label: '24 horas' },
   { value: '48h', label: '48 horas' },
   { value: '72h', label: '72 horas' },
-  { value: '7d', label: '7 días' },
+  { value: '7d', label: '7 dias' },
+  { value: 'custom', label: 'Personalizado...' },
 ]
 
 export function DashboardPage({ username, onLogout }: DashboardPageProps) {
@@ -36,7 +37,11 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
 
   const [incInput, setIncInput] = useState('')
   const [window, setWindow] = useState('48h')
+  const [customHours, setCustomHours] = useState('')
+  const [showCustomInput, setShowCustomInput] = useState(false)
   const [pollingJobIds, setPollingJobIds] = useState<string[]>([])
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [showRefreshSuccess, setShowRefreshSuccess] = useState(false)
 
   // Fetch jobs list
   const { data: jobsData, refetch: refetchJobs } = useQuery({
@@ -73,6 +78,31 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
     },
   })
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setShowRefreshSuccess(false)
+    await refetchJobs()
+    setIsRefreshing(false)
+    setShowRefreshSuccess(true)
+    setTimeout(() => setShowRefreshSuccess(false), 2000)
+  }
+
+  const handleWindowChange = (value: string) => {
+    if (value === 'custom') {
+      setShowCustomInput(true)
+    } else {
+      setShowCustomInput(false)
+      setWindow(value)
+    }
+  }
+
+  const getEffectiveWindow = () => {
+    if (showCustomInput && customHours) {
+      return `${customHours}h`
+    }
+    return window
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!incInput.trim()) return
@@ -82,7 +112,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
       return
     }
 
-    extractMutation.mutate({ inc, window })
+    extractMutation.mutate({ inc, window: getEffectiveWindow() })
   }
 
   const handleJobClick = (job: JobInfo) => {
@@ -134,19 +164,50 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
 
                   <div className="space-y-2">
                     <Label>Ventana temporal</Label>
-                    <Select value={window} onValueChange={setWindow}>
-                      <SelectTrigger>
-                        <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WINDOW_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {showCustomInput ? (
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="720"
+                            placeholder="Horas"
+                            value={customHours}
+                            onChange={(e) => setCustomHours(e.target.value)}
+                            className="pr-8"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            h
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setShowCustomInput(false)
+                            setCustomHours('')
+                          }}
+                          title="Volver a opciones predefinidas"
+                        >
+                          <Clock className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select value={window} onValueChange={handleWindowChange}>
+                        <SelectTrigger>
+                          <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {WINDOW_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
 
@@ -156,7 +217,8 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                     disabled={
                       extractMutation.isPending ||
                       !incInput.trim() ||
-                      !incInput.toUpperCase().startsWith('INC-')
+                      !incInput.toUpperCase().startsWith('INC-') ||
+                      (showCustomInput && (!customHours || parseInt(customHours) < 1))
                     }
                   >
                     {extractMutation.isPending ? (
@@ -210,15 +272,30 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
             style={{ animationDelay: '200ms' }}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Análisis Recientes</h2>
+              <h2 className="text-lg font-semibold">Analisis Recientes</h2>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => refetchJobs()}
-                className="text-muted-foreground"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={showRefreshSuccess ? "text-green-500" : "text-muted-foreground"}
               >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Actualizar
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    Actualizando...
+                  </>
+                ) : showRefreshSuccess ? (
+                  <>
+                    <Check className="w-4 h-4 mr-1" />
+                    Actualizado
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Actualizar
+                  </>
+                )}
               </Button>
             </div>
 

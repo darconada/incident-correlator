@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
-from ..models import JobStatus, JobInfo, Weights
+from ..models import JobStatus, JobInfo, Weights, Penalties, Bonuses, Thresholds
 
 
 class Database:
@@ -286,6 +286,39 @@ class Database:
     def set_top_results(self, top: int):
         """Save default top results to config."""
         self.set_config("top_results", top)
+
+    def get_penalties(self) -> Penalties:
+        """Get penalties from config."""
+        data = self.get_config("penalties")
+        if data:
+            return Penalties(**data)
+        return Penalties()
+
+    def set_penalties(self, penalties: Penalties):
+        """Save penalties to config."""
+        self.set_config("penalties", penalties.model_dump())
+
+    def get_bonuses(self) -> Bonuses:
+        """Get bonuses from config."""
+        data = self.get_config("bonuses")
+        if data:
+            return Bonuses(**data)
+        return Bonuses()
+
+    def set_bonuses(self, bonuses: Bonuses):
+        """Save bonuses to config."""
+        self.set_config("bonuses", bonuses.model_dump())
+
+    def get_thresholds(self) -> Thresholds:
+        """Get thresholds from config."""
+        data = self.get_config("thresholds")
+        if data:
+            return Thresholds(**data)
+        return Thresholds()
+
+    def set_thresholds(self, thresholds: Thresholds):
+        """Save thresholds to config."""
+        self.set_config("thresholds", thresholds.model_dump())
 
 
 # Singleton instance

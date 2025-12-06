@@ -48,8 +48,33 @@ export interface Weights {
   org: number
 }
 
+export interface Penalties {
+  no_live_intervals: number
+  no_hosts: number
+  no_services: number
+  generic_change: number
+  long_duration_week: number
+  long_duration_month: number
+  long_duration_quarter: number
+}
+
+export interface Bonuses {
+  proximity_exact: number
+  proximity_1h: number
+  proximity_2h: number
+  proximity_4h: number
+}
+
+export interface Thresholds {
+  time_decay_hours: number
+  min_score_to_show: number
+}
+
 export interface AppConfig {
   weights: Weights
+  penalties: Penalties
+  bonuses: Bonuses
+  thresholds: Thresholds
   top_results: number
 }
 

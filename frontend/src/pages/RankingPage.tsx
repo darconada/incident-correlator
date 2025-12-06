@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -73,7 +73,7 @@ export function RankingPage({ username, onLogout }: RankingPageProps) {
     },
   })
 
-  const handleWeightsChange = (weights: Weights) => {
+  const handleWeightsChange = (_weights: Weights) => {
     // Just update local state, actual recalculation happens on button click
   }
 

@@ -10,6 +10,7 @@ interface JobCardProps {
   onClick?: () => void
   onDelete?: () => void
   className?: string
+  style?: React.CSSProperties
 }
 
 const STATUS_CONFIG = {
@@ -18,6 +19,7 @@ const STATUS_CONFIG = {
     label: 'Pendiente',
     color: 'text-muted-foreground',
     bgColor: 'bg-muted/50',
+    animate: false,
   },
   running: {
     icon: Loader2,
@@ -31,16 +33,18 @@ const STATUS_CONFIG = {
     label: 'Completado',
     color: 'text-emerald-400',
     bgColor: 'bg-emerald-500/10',
+    animate: false,
   },
   failed: {
     icon: AlertCircle,
     label: 'Error',
     color: 'text-red-400',
     bgColor: 'bg-red-500/10',
+    animate: false,
   },
 }
 
-export function JobCard({ job, onClick, onDelete, className }: JobCardProps) {
+export function JobCard({ job, onClick, onDelete, className, style }: JobCardProps) {
   const config = STATUS_CONFIG[job.status]
   const StatusIcon = config.icon
   const isClickable = job.status === 'completed'
@@ -52,6 +56,7 @@ export function JobCard({ job, onClick, onDelete, className }: JobCardProps) {
         isClickable && 'cursor-pointer hover:border-primary/50 hover-lift',
         className
       )}
+      style={style}
       onClick={isClickable ? onClick : undefined}
     >
       <div className="p-4">

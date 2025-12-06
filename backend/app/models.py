@@ -156,11 +156,39 @@ class WeightsUpdateRequest(BaseModel):
     org: Optional[float] = None
 
 
+class Penalties(BaseModel):
+    no_live_intervals: float = Field(default=0.8, ge=0, le=1, description="Sin intervalos reales documentados")
+    no_hosts: float = Field(default=0.95, ge=0, le=1, description="Sin hosts identificados")
+    no_services: float = Field(default=0.90, ge=0, le=1, description="Sin servicios identificados")
+    generic_change: float = Field(default=0.5, ge=0, le=1, description="Cambio afecta >10 servicios")
+    long_duration_week: float = Field(default=0.8, ge=0, le=1, description="Duracion >1 semana")
+    long_duration_month: float = Field(default=0.6, ge=0, le=1, description="Duracion >1 mes")
+    long_duration_quarter: float = Field(default=0.4, ge=0, le=1, description="Duracion >3 meses")
+
+
+class Bonuses(BaseModel):
+    proximity_exact: float = Field(default=1.5, ge=1, le=3, description="TECCM empezo <30 min del INC")
+    proximity_1h: float = Field(default=1.3, ge=1, le=3, description="TECCM empezo <1 hora del INC")
+    proximity_2h: float = Field(default=1.2, ge=1, le=3, description="TECCM empezo <2 horas del INC")
+    proximity_4h: float = Field(default=1.1, ge=1, le=3, description="TECCM empezo <4 horas del INC")
+
+
+class Thresholds(BaseModel):
+    time_decay_hours: float = Field(default=4, ge=1, le=48, description="Horas para decay completo del time_score")
+    min_score_to_show: float = Field(default=0.0, ge=0, le=100, description="Score minimo para mostrar en ranking")
+
+
 class AppConfig(BaseModel):
     weights: Weights
+    penalties: Penalties = Field(default_factory=Penalties)
+    bonuses: Bonuses = Field(default_factory=Bonuses)
+    thresholds: Thresholds = Field(default_factory=Thresholds)
     top_results: int = Field(default=20, ge=5, le=200)
 
 
 class AppConfigUpdateRequest(BaseModel):
     weights: Optional[Weights] = None
+    penalties: Optional[Penalties] = None
+    bonuses: Optional[Bonuses] = None
+    thresholds: Optional[Thresholds] = None
     top_results: Optional[int] = Field(default=None, ge=5, le=200)
