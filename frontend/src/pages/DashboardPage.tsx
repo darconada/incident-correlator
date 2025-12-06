@@ -543,6 +543,59 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                 className="font-mono"
               />
             </div>
+
+            {/* JQL Preview */}
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <span className="text-muted-foreground">Vista previa de consultas JQL</span>
+                <span className="text-xs bg-secondary px-2 py-0.5 rounded">
+                  {1 + (advancedOptions.include_active ? 1 : 0) + (advancedOptions.include_no_end ? 1 : 0)} búsquedas
+                </span>
+              </h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {/* Query 1: Window */}
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-cyan-400">1. TECCMs en ventana temporal</p>
+                  <code className="block p-2 rounded bg-secondary/50 text-xs font-mono break-all text-muted-foreground">
+                    project = {advancedOptions.project} AND
+                    "Start Date/Time" &gt;= "<span className="text-cyan-400">[INC - {advancedOptions.window_before}]</span>" AND
+                    "Start Date/Time" &lt;= "<span className="text-cyan-400">[INC + {advancedOptions.window_after}]</span>"
+                    {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
+                  </code>
+                </div>
+
+                {/* Query 2: Active */}
+                {advancedOptions.include_active && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-violet-400">2. TECCMs activos al momento del INC</p>
+                    <code className="block p-2 rounded bg-secondary/50 text-xs font-mono break-all text-muted-foreground">
+                      project = {advancedOptions.project} AND
+                      "Start Date/Time" &lt;= "<span className="text-violet-400">[INC]</span>" AND
+                      "End Date/Time" &gt;= "<span className="text-violet-400">[INC]</span>"
+                      {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
+                    </code>
+                  </div>
+                )}
+
+                {/* Query 3: No end */}
+                {advancedOptions.include_no_end && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-emerald-400">
+                      {advancedOptions.include_active ? '3' : '2'}. TECCMs sin fecha de fin
+                    </p>
+                    <code className="block p-2 rounded bg-secondary/50 text-xs font-mono break-all text-muted-foreground">
+                      project = {advancedOptions.project} AND
+                      "Start Date/Time" &lt;= "<span className="text-emerald-400">[INC]</span>" AND
+                      "End Date/Time" IS EMPTY
+                      {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
+                    </code>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cada búsqueda devuelve hasta {advancedOptions.max_results} resultados. Los duplicados se eliminan automáticamente.
+              </p>
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
