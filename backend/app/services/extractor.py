@@ -1103,15 +1103,18 @@ def extract_teccms_for_manual_analysis(
             "first_impact_time": impact_time.isoformat(),
             "resolved_at": None,
         },
-        "services": virtual_incident.get("services", []),
-        "hosts": virtual_incident.get("hosts", []),
-        "technologies": virtual_incident.get("technologies", []),
+        # Formato compatible con el scorer (usa 'entities')
+        "entities": {
+            "services": virtual_incident.get("services", []),
+            "hosts": virtual_incident.get("hosts", []),
+            "technologies": virtual_incident.get("technologies", []),
+        },
         "live_intervals": [],
         "raw_fields": {},
     }
 
     logger.info(f"Manual analysis for impact_time={impact_time.isoformat()}")
-    logger.info(f"Virtual incident: services={virtual_inc_data['services']}, hosts={virtual_inc_data['hosts']}, technologies={virtual_inc_data['technologies']}")
+    logger.info(f"Virtual incident: services={virtual_inc_data['entities']['services']}, hosts={virtual_inc_data['entities']['hosts']}, technologies={virtual_inc_data['entities']['technologies']}")
 
     # Buscar TECCMs en la ventana
     logger.info(f"Searching TECCMs with options: window_before={window_str}, include_active={options.include_active}, include_no_end={options.include_no_end}")
