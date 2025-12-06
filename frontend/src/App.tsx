@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { RankingPage } from '@/pages/RankingPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { ApiDocsPage } from '@/pages/ApiDocsPage'
 import { getSession } from '@/api/client'
 
 function App() {
@@ -87,6 +88,19 @@ function App() {
           element={
             isAuthenticated ? (
               <SettingsPage
+                username={session?.username}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/api-docs"
+          element={
+            isAuthenticated ? (
+              <ApiDocsPage
                 username={session?.username}
                 onLogout={handleLogout}
               />

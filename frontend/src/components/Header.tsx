@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Activity, LogOut, Settings } from 'lucide-react'
+import { Activity, LogOut, Settings, Code2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 import { cn } from '@/lib/utils'
@@ -57,6 +57,13 @@ export function Header({ username, onLogout }: HeaderProps) {
             >
               <Settings className="w-4 h-4 mr-1" />
               Config
+            </NavLink>
+            <NavLink
+              href="/api-docs"
+              active={location.pathname === '/api-docs'}
+            >
+              <Code2 className="w-4 h-4 mr-1" />
+              API
             </NavLink>
           </nav>
 
