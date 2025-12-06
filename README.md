@@ -5,13 +5,15 @@ Aplicacion web para analizar correlaciones entre incidentes de produccion (INC) 
 ## Caracteristicas
 
 - **Extraccion paralela**: Conecta a Jira y extrae incidentes + TECCMs en ventana temporal usando multiples hilos (8 por defecto)
-- **Busqueda exhaustiva de TECCMs**: 3 busquedas JQL combinadas (ventana temporal, activos al momento, sin fecha fin)
+- **Busqueda avanzada**: Personaliza ventanas temporales, filtros JQL, tipos de TECCM a incluir
+- **Analisis manual**: Analiza TECCMs sin ticket de incidente, definiendo manualmente servicios, hosts y tecnologias afectadas
 - **Scoring inteligente**: Calcula correlacion basada en tiempo, servicios, infraestructura y organizacion
 - **Bonificaciones por proximidad**: TECCMs que empezaron cerca del incidente reciben bonus
 - **Penalizaciones inteligentes**: Cambios muy largos o genericos son penalizados (excepto si hay strong match)
 - **Ranking visual**: Muestra los TECCMs mas probables con scores detallados
 - **Pesos ajustables**: Personaliza la importancia de cada dimension y recalcula en tiempo real
-- **Historial**: Guarda analisis anteriores para referencia
+- **Historial enriquecido**: Muestra usuario, tipo de analisis (estandar/personalizado/manual) y resumen de opciones
+- **Servicio systemd**: Arranca automaticamente con el sistema
 
 ## Arquitectura
 
@@ -19,8 +21,9 @@ Aplicacion web para analizar correlaciones entre incidentes de produccion (INC) 
 +----------------------------------------------------------+
 |                    Frontend (React)                       |
 |              Tailwind CSS + shadcn/ui                     |
+|           (servido como archivos estaticos)               |
 +----------------------------------------------------------+
-                           | REST API
+                           |
                            v
 +----------------------------------------------------------+
 |                   Backend (FastAPI)                       |
@@ -39,55 +42,72 @@ Aplicacion web para analizar correlaciones entre incidentes de produccion (INC) 
 
 ## Quick Start
 
-### Con Docker Compose (recomendado)
+### Instalacion como servicio (recomendado para produccion)
 
 1. **Clonar y configurar**:
 ```bash
 git clone https://github.com/darconada/incident-correlator.git
 cd incident-correlator
 
-# Crear fichero .env con credenciales (opcional, se pueden introducir en la UI)
-cp backend/.env.example backend/.env
-# Editar backend/.env con tus credenciales de Jira si quieres
+# Configurar backend
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Configurar frontend
+cd ../frontend
+npm install
+npm run build
 ```
 
-2. **Levantar servicios**:
+2. **Instalar servicio systemd**:
 ```bash
-docker-compose up -d --build
+sudo bash install-service.sh
 ```
 
 3. **Acceder**:
-- Frontend: http://localhost:3000
-- API: http://localhost:8000
-- API Docs (Swagger): http://localhost:8000/docs
+- Aplicacion: http://localhost:5178
+- API Docs (Swagger): http://localhost:5178/docs
+
+4. **Comandos utiles**:
+```bash
+sudo systemctl status inc-teccm-analyzer   # Ver estado
+sudo journalctl -u inc-teccm-analyzer -f   # Ver logs
+sudo systemctl restart inc-teccm-analyzer  # Reiniciar
+sudo systemctl stop inc-teccm-analyzer     # Parar
+```
 
 ### Desarrollo local
 
 **Backend**:
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-pip install -r requirements.txt
+source venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend**:
+**Frontend** (en otra terminal):
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
+
+### Con Docker Compose
+
+```bash
+docker-compose up -d --build
+```
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
 
 ## Configuracion
 
 ### Variables de entorno (backend/.env)
 
 ```env
-# Jira (opcional - se pueden introducir en la UI)
+# Jira (obligatorio)
 JIRA_URL=https://URL-JIRA
-JIRA_USER=tu_usuario
-JIRA_PASSWORD=tu_password
 
 # Base de datos
 DATABASE_PATH=data/correlator.db
@@ -104,12 +124,39 @@ DEFAULT_WEIGHT_ORG=0.15
 ### 1. Login
 Introduce tus credenciales de Jira. Se usan para conectar a la API de Jira.
 
-### 2. Nuevo Analisis
+### 2. Analisis con Incidente
+
+**Analisis estandar**:
 - Introduce el ID del incidente (ej: `INC-117346`)
 - Selecciona la ventana temporal (24h, 48h, 72h, 7d)
 - Click en "Analizar"
 
-### 3. Ver Ranking
+**Busqueda avanzada**:
+- Click en "Avanzado" para personalizar:
+  - Ventana antes/despues del incidente
+  - Incluir TECCMs activos al momento del INC
+  - Incluir TECCMs sin fecha de cierre
+  - Incluir EXTERNAL MAINTENANCE en scoring
+  - Filtro JQL adicional
+  - Proyecto Jira a buscar
+- Vista previa de las queries JQL generadas
+
+### 3. Analisis Manual (sin ticket de incidente)
+
+Para cuando aun no existe el ticket de incidente pero hay un problema detectado:
+
+- Click en "Analisis Manual"
+- Define:
+  - **Nombre** (opcional): Para identificar el analisis
+  - **Fecha/hora del impacto** (obligatorio)
+  - **Servicios afectados**: Selecciona de la lista
+  - **Tecnologias**: Selecciona de la lista
+  - **Hosts**: Añade manualmente
+  - **Equipo** (opcional)
+- Configura opciones de busqueda
+- Click en "Analizar"
+
+### 4. Ver Ranking
 El sistema extrae todos los TECCMs en la ventana y calcula un score de correlacion basado en:
 
 | Dimension | Peso | Descripcion |
@@ -119,10 +166,19 @@ El sistema extrae todos los TECCMs en la ventana y calcula un score de correlaci
 | **Infra** | 20% | Hosts y tecnologias en comun |
 | **Org** | 15% | Equipo y personas involucradas |
 
-### 4. Ajustar Pesos
-Usa los sliders en Config para modificar la importancia de cada dimension y recalcular el ranking.
+### 5. Historial de Analisis
+El historial muestra:
+- **Tipo de analisis**: Estandar, Personalizado (con icono), Manual (con icono)
+- **Usuario** que lanzo el analisis
+- **Resumen de opciones** si se usaron opciones no estandar
 
-### 5. Ver Detalle
+### 6. Ajustar Pesos
+En la pagina de Configuracion puedes:
+- Modificar pesos de cada dimension
+- Configurar penalizaciones y bonificaciones
+- Ver documentacion detallada del algoritmo de scoring
+
+### 7. Ver Detalle
 Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, penalties y bonuses.
 
 ## Algoritmo de Scoring
@@ -174,14 +230,20 @@ Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, p
 | POST | `/api/auth/login` | Login con credenciales Jira |
 | POST | `/api/auth/logout` | Cerrar sesion |
 | GET | `/api/auth/session` | Info de sesion actual |
-| POST | `/api/analysis/extract` | Iniciar extraccion |
+| POST | `/api/analysis/extract` | Iniciar extraccion con INC |
+| POST | `/api/analysis/manual` | Iniciar analisis manual |
+| GET | `/api/analysis/options/technologies` | Lista de tecnologias disponibles |
+| GET | `/api/analysis/options/services` | Lista de servicios disponibles |
 | GET | `/api/analysis/jobs` | Listar jobs |
 | GET | `/api/analysis/jobs/{id}` | Estado de un job |
+| DELETE | `/api/analysis/jobs/{id}` | Eliminar un job |
 | GET | `/api/analysis/{id}/ranking` | Obtener ranking |
 | POST | `/api/analysis/score` | Recalcular con nuevos pesos |
 | GET | `/api/analysis/{id}/teccm/{key}` | Detalle de TECCM |
-| GET | `/api/config` | Obtener configuracion actual |
-| PUT | `/api/config` | Actualizar configuracion |
+| GET | `/api/config/weights` | Obtener pesos actuales |
+| PUT | `/api/config/weights` | Actualizar pesos |
+| GET | `/api/config/app` | Obtener configuracion completa |
+| PUT | `/api/config/app` | Actualizar configuracion |
 
 Documentacion interactiva disponible en `/docs` (Swagger UI) y `/redoc`.
 
@@ -191,66 +253,37 @@ Documentacion interactiva disponible en `/docs` (Swagger UI) y `/redoc`.
 incident-correlator/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py           # FastAPI app
+│   │   ├── main.py           # FastAPI app + servidor estatico
 │   │   ├── config.py         # Configuracion
 │   │   ├── models.py         # Pydantic models
 │   │   ├── routers/          # API endpoints
 │   │   │   ├── auth.py
-│   │   │   ├── analysis.py
+│   │   │   ├── analysis.py   # Incluye analisis manual
 │   │   │   └── config.py
 │   │   ├── services/         # Logica de negocio
-│   │   │   ├── extractor.py  # Extraccion paralela de Jira
+│   │   │   ├── extractor.py  # Extraccion paralela + manual
 │   │   │   ├── scorer.py     # Algoritmo de scoring
 │   │   │   └── jira_client.py
 │   │   ├── jobs/             # Background jobs
 │   │   └── db/               # Persistencia SQLite
+│   ├── data/                 # Base de datos SQLite
+│   ├── venv/                 # Virtual environment
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── components/       # Componentes UI
-│   │   ├── pages/            # Paginas
+│   │   ├── pages/            # Paginas (Dashboard, Analysis, Settings)
 │   │   ├── api/              # Cliente API
 │   │   ├── types/            # TypeScript types
 │   │   └── App.tsx
+│   ├── dist/                 # Build de produccion
 │   ├── package.json
 │   └── Dockerfile
-├── jira_extractor.py         # Script CLI standalone
-├── jira_scorer.py            # Script CLI standalone
+├── inc-teccm-analyzer.service  # Archivo de servicio systemd
+├── install-service.sh          # Script de instalacion
 ├── docker-compose.yml
-├── docker-compose.dev.yml
 └── README.md
-```
-
-## Scripts CLI Standalone
-
-Ademas de la web, se incluyen scripts CLI que funcionan de forma independiente:
-
-### jira_extractor.py
-```bash
-# Extraer un incidente con TECCMs en ventana de 48h
-python jira_extractor.py --inc INC-117346 --window 48h --output extraction.json
-
-# Extraer un ticket individual
-python jira_extractor.py --ticket TECCM-123456
-
-# Usar query JQL personalizada
-python jira_extractor.py --jql "project = TECCM AND created >= -7d"
-```
-
-### jira_scorer.py
-```bash
-# Calcular ranking desde extraccion
-python jira_scorer.py --input extraction.json
-
-# Top 10 con detalle del primero
-python jira_scorer.py --input extraction.json --top 10 --explain
-
-# Exportar a JSON
-python jira_scorer.py --input extraction.json --format json --output ranking.json
-
-# Ajustar pesos
-python jira_scorer.py --input extraction.json --weight-time 0.40 --weight-service 0.25
 ```
 
 ## Desarrollo
@@ -275,15 +308,23 @@ Editar `backend/app/services/extractor.py`:
 - Set `HOST_BLACKLIST` para falsos positivos
 - Funcion `is_valid_host()` para validaciones
 
+### Rebuild del frontend
+Despues de cambios en el frontend:
+```bash
+cd frontend
+npm run build
+sudo systemctl restart inc-teccm-analyzer
+```
+
 ## Troubleshooting
 
 ### Error de conexion a Jira
 - Verificar credenciales
-- Comprobar acceso a `https://hosting-jira.1and1.org`
+- Comprobar acceso a la URL de Jira configurada
 - VPN si es necesario
 
 ### Jobs que no terminan
-- Revisar logs: `docker-compose logs -f backend`
+- Revisar logs: `sudo journalctl -u inc-teccm-analyzer -f`
 - Verificar timeout de Jira (puede ser lento con muchos tickets)
 - La extraccion paralela ayuda pero Jira puede hacer rate limiting
 
@@ -291,7 +332,20 @@ Editar `backend/app/services/extractor.py`:
 ```bash
 # Borrar y recrear
 rm backend/data/correlator.db
-docker-compose restart backend
+sudo systemctl restart inc-teccm-analyzer
+```
+
+### El servicio no arranca
+```bash
+# Ver logs detallados
+sudo journalctl -u inc-teccm-analyzer -n 50
+
+# Verificar permisos
+ls -la /home/darconada@arsyslan.es/apps/inc-teccm-analyzer/backend/
+
+# Probar manualmente
+cd /home/darconada@arsyslan.es/apps/inc-teccm-analyzer/backend
+./venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 5178
 ```
 
 ### Rate limiting de Jira
