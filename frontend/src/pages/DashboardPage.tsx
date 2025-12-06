@@ -148,6 +148,9 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
       return
     }
 
+    console.log('Sending advanced search options:', advancedOptions)
+    console.log('include_active:', advancedOptions.include_active, 'include_no_end:', advancedOptions.include_no_end)
+
     extractMutation.mutate({
       inc,
       window: advancedOptions.window_before,
