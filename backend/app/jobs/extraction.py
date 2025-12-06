@@ -120,7 +120,12 @@ async def run_extraction_job(
         db.save_ranking(job_id, Weights(), ranking_data)
 
         # Update job as completed
-        total_teccms = len([t for t in extraction_data.get('tickets', []) if t.get('ticket_type') == 'CHANGE'])
+        # Count TECCMs based on include_external_maintenance setting
+        include_ext = extraction_data.get('extraction_info', {}).get('search_options', {}).get('include_external_maintenance', False)
+        if include_ext:
+            total_teccms = len([t for t in extraction_data.get('tickets', []) if t.get('ticket_type') in ('CHANGE', 'EXTERNAL MAINTENANCE')])
+        else:
+            total_teccms = len([t for t in extraction_data.get('tickets', []) if t.get('ticket_type') == 'CHANGE'])
         db.update_job_status(job_id, JobStatus.COMPLETED, progress=100, total_teccms=total_teccms)
 
         _active_jobs[job_id]["status"] = "completed"
