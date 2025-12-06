@@ -46,7 +46,10 @@ class Database:
                     total_teccms INTEGER,
                     error TEXT,
                     created_at TEXT NOT NULL,
-                    completed_at TEXT
+                    completed_at TEXT,
+                    job_type TEXT DEFAULT 'standard',
+                    username TEXT,
+                    search_summary TEXT
                 );
 
                 -- Extraction data (JSON blob)
@@ -78,20 +81,41 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_rankings_job ON rankings(job_id);
             """)
 
+            # Migration: add new columns if they don't exist
+            try:
+                conn.execute("ALTER TABLE jobs ADD COLUMN job_type TEXT DEFAULT 'standard'")
+            except:
+                pass  # Column already exists
+            try:
+                conn.execute("ALTER TABLE jobs ADD COLUMN username TEXT")
+            except:
+                pass
+            try:
+                conn.execute("ALTER TABLE jobs ADD COLUMN search_summary TEXT")
+            except:
+                pass
+
     # ══════════════════════════════════════════════════════════════════════════
     #  JOBS
     # ══════════════════════════════════════════════════════════════════════════
 
-    def create_job(self, inc: str, window: str) -> str:
+    def create_job(
+        self,
+        inc: str,
+        window: str,
+        job_type: str = "standard",
+        username: str = None,
+        search_summary: str = None
+    ) -> str:
         """Create a new job and return its ID."""
         job_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat() + "Z"
 
         with self._get_connection() as conn:
             conn.execute(
-                """INSERT INTO jobs (job_id, inc, window, status, created_at)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (job_id, inc.upper(), window, JobStatus.PENDING.value, now)
+                """INSERT INTO jobs (job_id, inc, window, status, created_at, job_type, username, search_summary)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (job_id, inc.upper(), window, JobStatus.PENDING.value, now, job_type, username, search_summary)
             )
 
         return job_id
@@ -115,7 +139,10 @@ class Database:
                 total_teccms=row["total_teccms"],
                 error=row["error"],
                 created_at=datetime.fromisoformat(row["created_at"].replace("Z", "")),
-                completed_at=datetime.fromisoformat(row["completed_at"].replace("Z", "")) if row["completed_at"] else None
+                completed_at=datetime.fromisoformat(row["completed_at"].replace("Z", "")) if row["completed_at"] else None,
+                job_type=row["job_type"] if "job_type" in row.keys() else "standard",
+                username=row["username"] if "username" in row.keys() else None,
+                search_summary=row["search_summary"] if "search_summary" in row.keys() else None,
             )
 
     def get_jobs(self, limit: int = 50) -> List[JobInfo]:
@@ -135,7 +162,10 @@ class Database:
                     total_teccms=row["total_teccms"],
                     error=row["error"],
                     created_at=datetime.fromisoformat(row["created_at"].replace("Z", "")),
-                    completed_at=datetime.fromisoformat(row["completed_at"].replace("Z", "")) if row["completed_at"] else None
+                    completed_at=datetime.fromisoformat(row["completed_at"].replace("Z", "")) if row["completed_at"] else None,
+                    job_type=row["job_type"] if "job_type" in row.keys() else "standard",
+                    username=row["username"] if "username" in row.keys() else None,
+                    search_summary=row["search_summary"] if "search_summary" in row.keys() else None,
                 )
                 for row in rows
             ]

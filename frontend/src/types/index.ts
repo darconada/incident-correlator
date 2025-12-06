@@ -41,6 +41,8 @@ export interface ExtractionResponse {
   message: string
 }
 
+export type JobType = 'standard' | 'custom' | 'manual'
+
 export interface JobInfo {
   job_id: string
   inc: string
@@ -51,6 +53,9 @@ export interface JobInfo {
   error?: string
   created_at: string
   completed_at?: string
+  job_type?: JobType
+  username?: string
+  search_summary?: string
 }
 
 export interface Weights {

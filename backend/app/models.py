@@ -19,6 +19,12 @@ class JobStatus(str, Enum):
     FAILED = "failed"
 
 
+class JobType(str, Enum):
+    STANDARD = "standard"    # INC con opciones por defecto
+    CUSTOM = "custom"        # INC con búsqueda avanzada
+    MANUAL = "manual"        # Sin ticket de incidente
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUTH
 # ══════════════════════════════════════════════════════════════════════════════
@@ -77,6 +83,10 @@ class JobInfo(BaseModel):
     error: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+    # New fields for job metadata
+    job_type: Optional[str] = "standard"  # standard, custom, manual
+    username: Optional[str] = None
+    search_summary: Optional[str] = None  # Brief summary of search options
 
 
 class JobListResponse(BaseModel):

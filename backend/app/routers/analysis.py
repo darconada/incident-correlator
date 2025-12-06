@@ -54,9 +54,36 @@ async def start_extraction(
     else:
         window_display = request.window
 
-    # Create job
-    job_id = db.create_job(inc, window_display)
-    logger.info(f"Created job {job_id} for {inc} with window {window_display}")
+    # Determine job type and build search summary
+    job_type = "standard"
+    search_summary = None
+    if request.search_options:
+        job_type = "custom"
+        # Build a brief summary of non-default options
+        summary_parts = []
+        opts = request.search_options
+        if not opts.include_active:
+            summary_parts.append("sin activos")
+        if not opts.include_no_end:
+            summary_parts.append("sin abiertos")
+        if opts.include_external_maintenance:
+            summary_parts.append("+ext.maint")
+        if opts.extra_jql:
+            summary_parts.append("JQL extra")
+        if opts.project != "TECCM":
+            summary_parts.append(f"proj:{opts.project}")
+        if summary_parts:
+            search_summary = ", ".join(summary_parts)
+
+    # Create job with metadata
+    job_id = db.create_job(
+        inc=inc,
+        window=window_display,
+        job_type=job_type,
+        username=session.username,
+        search_summary=search_summary
+    )
+    logger.info(f"Created job {job_id} for {inc} with window {window_display} (type={job_type}, user={session.username})")
 
     # Convert search_options to dict if present
     search_options_dict = None

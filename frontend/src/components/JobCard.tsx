@@ -1,9 +1,27 @@
-import { AlertCircle, CheckCircle2, Clock, Loader2, Trash2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock, Loader2, Trash2, Settings2, User, FileEdit } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn, formatRelativeTime } from '@/lib/utils'
 import type { JobInfo } from '@/types'
+
+const JOB_TYPE_CONFIG = {
+  standard: {
+    label: null,  // No badge for standard
+    icon: null,
+    className: '',
+  },
+  custom: {
+    label: 'Personalizado',
+    icon: Settings2,
+    className: 'bg-violet-500/20 text-violet-400',
+  },
+  manual: {
+    label: 'Manual',
+    icon: FileEdit,
+    className: 'bg-amber-500/20 text-amber-400',
+  },
+}
 
 interface JobCardProps {
   job: JobInfo
@@ -48,6 +66,8 @@ export function JobCard({ job, onClick, onDelete, className, style }: JobCardPro
   const config = STATUS_CONFIG[job.status]
   const StatusIcon = config.icon
   const isClickable = job.status === 'completed'
+  const jobTypeConfig = JOB_TYPE_CONFIG[job.job_type || 'standard']
+  const JobTypeIcon = jobTypeConfig.icon
 
   return (
     <Card
@@ -73,22 +93,41 @@ export function JobCard({ job, onClick, onDelete, className, style }: JobCardPro
               />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="mono font-semibold text-foreground">
                   {job.inc}
                 </span>
                 <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
                   {job.window}
                 </span>
-              </div>
-              <p className="text-sm text-muted-foreground truncate">
-                {config.label}
-                {job.total_teccms !== null && job.total_teccms !== undefined && (
-                  <span className="ml-1">
-                    · {job.total_teccms} TECCMs
+                {jobTypeConfig.label && (
+                  <span className={cn('text-xs px-1.5 py-0.5 rounded flex items-center gap-1', jobTypeConfig.className)}>
+                    {JobTypeIcon && <JobTypeIcon className="w-3 h-3" />}
+                    {jobTypeConfig.label}
                   </span>
                 )}
-              </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="truncate">
+                  {config.label}
+                  {job.total_teccms !== null && job.total_teccms !== undefined && (
+                    <span className="ml-1">
+                      · {job.total_teccms} TECCMs
+                    </span>
+                  )}
+                </span>
+                {job.username && (
+                  <span className="flex items-center gap-1 text-xs opacity-70">
+                    <User className="w-3 h-3" />
+                    {job.username}
+                  </span>
+                )}
+              </div>
+              {job.search_summary && (
+                <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                  {job.search_summary}
+                </p>
+              )}
             </div>
           </div>
 
