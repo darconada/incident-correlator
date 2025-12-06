@@ -936,7 +936,6 @@ def extract_inc_with_teccms(
 
     # Construir opciones de búsqueda
     if search_options:
-        logger.info(f"Received search_options: {search_options}")
         # Importante: usar 'is not None' para no confundir False con ausencia de valor
         include_active = search_options.get("include_active")
         include_no_end = search_options.get("include_no_end")
@@ -950,12 +949,10 @@ def extract_inc_with_teccms(
             extra_jql=search_options.get("extra_jql", ""),
             project=search_options.get("project", "TECCM"),
         )
-        logger.info(f"Built SearchOptions: include_active={options.include_active}, include_no_end={options.include_no_end}")
         # Para el log, usar window_before como referencia
         window_str = search_options.get("window_before", "48h")
     else:
         options = SearchOptions(window_before=window_str)
-        logger.info("Using default SearchOptions (no search_options provided)")
 
     # Extraer el INC primero (siempre secuencial, necesitamos la fecha)
     logger.info(f"Extracting INC to determine time window...")

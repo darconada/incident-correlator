@@ -60,9 +60,7 @@ async def start_extraction(
 
     # Convert search_options to dict if present
     search_options_dict = None
-    logger.info(f"Request received - search_options present: {request.search_options is not None}")
     if request.search_options:
-        logger.info(f"Raw search_options from request: include_active={request.search_options.include_active}, include_no_end={request.search_options.include_no_end}")
         search_options_dict = {
             "window_before": request.search_options.window_before,
             "window_after": request.search_options.window_after,
@@ -72,9 +70,7 @@ async def start_extraction(
             "extra_jql": request.search_options.extra_jql,
             "project": request.search_options.project,
         }
-        logger.info(f"Using advanced search options: {search_options_dict}")
-    else:
-        logger.info("No search_options in request - using defaults")
+        logger.info(f"Advanced search: include_active={request.search_options.include_active}, include_no_end={request.search_options.include_no_end}")
 
     # Start background extraction
     start_extraction_job(
