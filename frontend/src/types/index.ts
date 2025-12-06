@@ -19,9 +19,20 @@ export interface SessionInfo {
   jira_url: string
 }
 
+export interface SearchOptions {
+  window_before: string
+  window_after: string
+  include_active: boolean
+  include_no_end: boolean
+  max_results: number
+  extra_jql: string
+  project: string
+}
+
 export interface ExtractionRequest {
   inc: string
   window: string
+  search_options?: SearchOptions
 }
 
 export interface ExtractionResponse {

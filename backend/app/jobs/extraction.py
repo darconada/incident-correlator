@@ -33,7 +33,8 @@ async def run_extraction_job(
     inc_key: str,
     window: str,
     username: str,
-    password: str
+    password: str,
+    search_options: Optional[Dict[str, Any]] = None
 ):
     """
     Run extraction job in background.
@@ -43,6 +44,14 @@ async def run_extraction_job(
     2. Extracts the INC and related TECCMs
     3. Calculates the initial ranking
     4. Saves everything to the database
+
+    Args:
+        job_id: Unique job identifier
+        inc_key: INC ticket key
+        window: Time window (legacy, ignored if search_options present)
+        username: Jira username
+        password: Jira password
+        search_options: Advanced search options dict
     """
     db = get_db()
     _active_jobs[job_id] = {"progress": 0, "total": 0, "status": "connecting"}
@@ -51,6 +60,8 @@ async def run_extraction_job(
         # Update status to running
         db.update_job_status(job_id, JobStatus.RUNNING)
         logger.info(f"Starting extraction job {job_id} for {inc_key}")
+        if search_options:
+            logger.info(f"Using advanced search options: {search_options}")
 
         # Connect to Jira (blocking operation, run in thread pool)
         _active_jobs[job_id]["status"] = "connecting"
@@ -85,7 +96,8 @@ async def run_extraction_job(
                 client.client,
                 inc_key,
                 window,
-                progress_callback
+                progress_callback,
+                search_options=search_options
             )
 
         extraction_data = await loop.run_in_executor(_executor, do_extraction)
@@ -132,9 +144,10 @@ def start_extraction_job(
     inc_key: str,
     window: str,
     username: str,
-    password: str
+    password: str,
+    search_options: Optional[Dict[str, Any]] = None
 ):
     """Start an extraction job in background."""
     asyncio.create_task(
-        run_extraction_job(job_id, inc_key, window, username, password)
+        run_extraction_job(job_id, inc_key, window, username, password, search_options)
     )

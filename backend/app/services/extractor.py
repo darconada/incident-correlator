@@ -696,80 +696,139 @@ def extract_ticket_with_retry(jira: JIRA, issue_key: str, progress_counter: dict
     return None
 
 
-def search_teccm_in_window(jira: JIRA, inc_created: str, window: timedelta) -> List[str]:
+class SearchOptions:
+    """Opciones de búsqueda de TECCMs."""
+    def __init__(
+        self,
+        window_before: str = "48h",
+        window_after: str = "2h",
+        include_active: bool = True,
+        include_no_end: bool = True,
+        max_results: int = 500,
+        extra_jql: str = "",
+        project: str = "TECCM"
+    ):
+        self.window_before = parse_window(window_before)
+        self.window_after = parse_window(window_after)
+        self.include_active = include_active
+        self.include_no_end = include_no_end
+        self.max_results = max_results
+        self.extra_jql = extra_jql.strip()
+        self.project = project
+
+
+def search_teccm_in_window(
+    jira: JIRA,
+    inc_created: str,
+    window: timedelta = None,
+    options: SearchOptions = None
+) -> List[str]:
     """
     Busca TECCMs relevantes para un incidente.
 
-    Realiza tres búsquedas:
-    1. TECCMs que EMPEZARON en la ventana temporal (ej: últimas 48h)
-    2. TECCMs que ESTABAN ACTIVOS al momento del incidente (cambios largos en curso)
-    3. TECCMs sin fecha fin (aún en curso)
+    Realiza hasta tres búsquedas configurables:
+    1. TECCMs que EMPEZARON en la ventana temporal
+    2. TECCMs que ESTABAN ACTIVOS al momento del incidente (opcional)
+    3. TECCMs sin fecha fin (opcional)
 
-    Combina todos los resultados sin duplicados.
+    Args:
+        jira: Cliente JIRA conectado
+        inc_created: Fecha de creación del INC en formato ISO
+        window: Ventana temporal (legacy, se ignora si options está presente)
+        options: Opciones avanzadas de búsqueda
+
+    Returns:
+        Lista de keys de TECCMs encontrados (sin duplicados)
     """
+    # Usar opciones por defecto si no se proporcionan
+    if options is None:
+        options = SearchOptions(
+            window_before=f"{int(window.total_seconds() // 3600)}h" if window else "48h"
+        )
+
     all_teccm_keys = set()
+    search_stats = {
+        "window": 0,
+        "active": 0,
+        "no_end": 0,
+    }
 
     try:
         inc_dt = datetime.strptime(inc_created[:19], "%Y-%m-%dT%H:%M:%S")
         inc_str = inc_dt.strftime("%Y-%m-%d %H:%M")
 
+        # Construir filtro JQL adicional
+        extra_filter = f" {options.extra_jql}" if options.extra_jql else ""
+
         # ══════════════════════════════════════════════════════════════════════
         # BÚSQUEDA 1: TECCMs que empezaron en la ventana temporal
         # ══════════════════════════════════════════════════════════════════════
-        start_dt = inc_dt - window
-        end_dt = inc_dt + timedelta(hours=2)
+        start_dt = inc_dt - options.window_before
+        end_dt = inc_dt + options.window_after
 
         start_str = start_dt.strftime("%Y-%m-%d %H:%M")
         end_str = end_dt.strftime("%Y-%m-%d %H:%M")
 
         jql_window = (
-            f'project = TECCM AND '
+            f'project = {options.project} AND '
             f'"Start Date/Time" >= "{start_str}" AND '
-            f'"Start Date/Time" <= "{end_str}" '
+            f'"Start Date/Time" <= "{end_str}"'
+            f'{extra_filter} '
             f'ORDER BY "Start Date/Time" DESC'
         )
 
         logger.info(f"Búsqueda 1 - TECCMs en ventana: {jql_window}")
-        issues_window = jira.search_issues(jql_window, maxResults=500)
+        issues_window = jira.search_issues(jql_window, maxResults=options.max_results)
         window_keys = [issue.key for issue in issues_window]
         all_teccm_keys.update(window_keys)
-        logger.info(f"  → Encontrados {len(window_keys)} TECCMs en ventana de {window}")
+        search_stats["window"] = len(window_keys)
+        logger.info(f"  → Encontrados {len(window_keys)} TECCMs en ventana")
 
         # ══════════════════════════════════════════════════════════════════════
-        # BÚSQUEDA 2: TECCMs activos al momento del incidente
+        # BÚSQUEDA 2: TECCMs activos al momento del incidente (opcional)
         # ══════════════════════════════════════════════════════════════════════
-        jql_active = (
-            f'project = TECCM AND '
-            f'"Start Date/Time" <= "{inc_str}" AND '
-            f'"End Date/Time" >= "{inc_str}" '
-            f'ORDER BY "Start Date/Time" DESC'
-        )
+        if options.include_active:
+            jql_active = (
+                f'project = {options.project} AND '
+                f'"Start Date/Time" <= "{inc_str}" AND '
+                f'"End Date/Time" >= "{inc_str}"'
+                f'{extra_filter} '
+                f'ORDER BY "Start Date/Time" DESC'
+            )
 
-        logger.info(f"Búsqueda 2 - TECCMs activos: {jql_active}")
-        issues_active = jira.search_issues(jql_active, maxResults=500)
-        active_keys = [issue.key for issue in issues_active]
-        new_from_active = [k for k in active_keys if k not in all_teccm_keys]
-        all_teccm_keys.update(active_keys)
-        logger.info(f"  → Encontrados {len(active_keys)} TECCMs activos ({len(new_from_active)} nuevos)")
+            logger.info(f"Búsqueda 2 - TECCMs activos: {jql_active}")
+            issues_active = jira.search_issues(jql_active, maxResults=options.max_results)
+            active_keys = [issue.key for issue in issues_active]
+            new_from_active = [k for k in active_keys if k not in all_teccm_keys]
+            all_teccm_keys.update(active_keys)
+            search_stats["active"] = len(new_from_active)
+            logger.info(f"  → Encontrados {len(active_keys)} TECCMs activos ({len(new_from_active)} nuevos)")
+        else:
+            logger.info("Búsqueda 2 - TECCMs activos: OMITIDA")
 
         # ══════════════════════════════════════════════════════════════════════
-        # BÚSQUEDA 3: TECCMs activos sin fecha fin (aún en curso)
+        # BÚSQUEDA 3: TECCMs activos sin fecha fin (opcional)
         # ══════════════════════════════════════════════════════════════════════
-        jql_no_end = (
-            f'project = TECCM AND '
-            f'"Start Date/Time" <= "{inc_str}" AND '
-            f'"End Date/Time" IS EMPTY '
-            f'ORDER BY "Start Date/Time" DESC'
-        )
+        if options.include_no_end:
+            jql_no_end = (
+                f'project = {options.project} AND '
+                f'"Start Date/Time" <= "{inc_str}" AND '
+                f'"End Date/Time" IS EMPTY'
+                f'{extra_filter} '
+                f'ORDER BY "Start Date/Time" DESC'
+            )
 
-        logger.info(f"Búsqueda 3 - TECCMs sin fecha fin: {jql_no_end}")
-        issues_no_end = jira.search_issues(jql_no_end, maxResults=500)
-        no_end_keys = [issue.key for issue in issues_no_end]
-        new_from_no_end = [k for k in no_end_keys if k not in all_teccm_keys]
-        all_teccm_keys.update(no_end_keys)
-        logger.info(f"  → Encontrados {len(no_end_keys)} TECCMs sin fecha fin ({len(new_from_no_end)} nuevos)")
+            logger.info(f"Búsqueda 3 - TECCMs sin fecha fin: {jql_no_end}")
+            issues_no_end = jira.search_issues(jql_no_end, maxResults=options.max_results)
+            no_end_keys = [issue.key for issue in issues_no_end]
+            new_from_no_end = [k for k in no_end_keys if k not in all_teccm_keys]
+            all_teccm_keys.update(no_end_keys)
+            search_stats["no_end"] = len(new_from_no_end)
+            logger.info(f"  → Encontrados {len(no_end_keys)} TECCMs sin fecha fin ({len(new_from_no_end)} nuevos)")
+        else:
+            logger.info("Búsqueda 3 - TECCMs sin fecha fin: OMITIDA")
 
-        logger.info(f"Total TECCMs únicos: {len(all_teccm_keys)}")
+        logger.info(f"Total TECCMs únicos: {len(all_teccm_keys)} (ventana: {search_stats['window']}, activos: +{search_stats['active']}, sin fin: +{search_stats['no_end']})")
         return list(all_teccm_keys)
 
     except Exception as e:
@@ -849,7 +908,8 @@ def extract_inc_with_teccms(
     inc_key: str,
     window_str: str = "48h",
     progress_callback: Callable[[int, int], None] = None,
-    num_threads: int = DEFAULT_THREADS
+    num_threads: int = DEFAULT_THREADS,
+    search_options: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """
     Extrae un INC y todos los TECCMs en la ventana temporal.
@@ -857,14 +917,38 @@ def extract_inc_with_teccms(
     Args:
         jira: Cliente JIRA conectado
         inc_key: Key del incidente (e.g., "INC-117346")
-        window_str: Ventana temporal (e.g., "48h", "2d")
+        window_str: Ventana temporal legacy (e.g., "48h", "2d") - se ignora si search_options está presente
         progress_callback: Función callback(current, total) para reportar progreso
         num_threads: Número de hilos para extracción paralela (default: 8)
+        search_options: Dict con opciones avanzadas de búsqueda:
+            - window_before: str (default "48h")
+            - window_after: str (default "2h")
+            - include_active: bool (default True)
+            - include_no_end: bool (default True)
+            - max_results: int (default 500)
+            - extra_jql: str (default "")
+            - project: str (default "TECCM")
 
     Returns:
         Dict con extraction_info y tickets
     """
     inc_key = inc_key.upper()
+
+    # Construir opciones de búsqueda
+    if search_options:
+        options = SearchOptions(
+            window_before=search_options.get("window_before", "48h"),
+            window_after=search_options.get("window_after", "2h"),
+            include_active=search_options.get("include_active", True),
+            include_no_end=search_options.get("include_no_end", True),
+            max_results=search_options.get("max_results", 500),
+            extra_jql=search_options.get("extra_jql", ""),
+            project=search_options.get("project", "TECCM"),
+        )
+        # Para el log, usar window_before como referencia
+        window_str = search_options.get("window_before", "48h")
+    else:
+        options = SearchOptions(window_before=window_str)
 
     # Extraer el INC primero (siempre secuencial, necesitamos la fecha)
     logger.info(f"Extracting INC to determine time window...")
@@ -875,12 +959,11 @@ def extract_inc_with_teccms(
 
     # Buscar TECCMs en la ventana
     inc_created = inc_data['times']['created_at']
-    window = parse_window(window_str)
 
-    logger.info(f"Searching TECCMs in {window_str} window before {inc_created}")
-    teccm_keys = search_teccm_in_window(jira, inc_created, window)
+    logger.info(f"Searching TECCMs with options: window_before={window_str}, include_active={options.include_active}, include_no_end={options.include_no_end}")
+    teccm_keys = search_teccm_in_window(jira, inc_created, options=options)
 
-    logger.info(f"Found {len(teccm_keys)} TECCMs in window")
+    logger.info(f"Found {len(teccm_keys)} TECCMs")
 
     # Reportar progreso inicial (INC ya extraído)
     total = 1 + len(teccm_keys)
@@ -913,15 +996,30 @@ def extract_inc_with_teccms(
 
     logger.info(f"Extracted {len(results)} tickets ({len(results) - 1} TECCMs) using {min(num_threads, max(1, len(teccm_keys)))} threads")
 
+    # Información de extracción incluyendo opciones usadas
+    extraction_info = {
+        "version": VERSION,
+        "extracted_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "total_tickets": len(results),
+        "source_mode": "inc+window",
+        "inc_key": inc_key,
+        "window": window_str,
+        "threads_used": min(num_threads, max(1, len(teccm_keys))),
+    }
+
+    # Añadir opciones avanzadas si se usaron
+    if search_options:
+        extraction_info["search_options"] = {
+            "window_before": search_options.get("window_before", "48h"),
+            "window_after": search_options.get("window_after", "2h"),
+            "include_active": options.include_active,
+            "include_no_end": options.include_no_end,
+            "max_results": options.max_results,
+            "extra_jql": options.extra_jql or None,
+            "project": options.project,
+        }
+
     return {
-        "extraction_info": {
-            "version": VERSION,
-            "extracted_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "total_tickets": len(results),
-            "source_mode": "inc+window",
-            "inc_key": inc_key,
-            "window": window_str,
-            "threads_used": min(num_threads, max(1, len(teccm_keys))),
-        },
+        "extraction_info": extraction_info,
         "tickets": results
     }

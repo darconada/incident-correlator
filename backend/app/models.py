@@ -44,9 +44,21 @@ class SessionInfo(BaseModel):
 #  EXTRACTION / ANALYSIS
 # ══════════════════════════════════════════════════════════════════════════════
 
+class SearchOptions(BaseModel):
+    """Opciones avanzadas de búsqueda de TECCMs."""
+    window_before: str = Field(default="48h", description="Ventana temporal hacia atrás desde el INC")
+    window_after: str = Field(default="2h", description="Ventana temporal hacia adelante desde el INC")
+    include_active: bool = Field(default=True, description="Incluir TECCMs activos al momento del INC")
+    include_no_end: bool = Field(default=True, description="Incluir TECCMs sin fecha de fin")
+    max_results: int = Field(default=500, ge=10, le=2000, description="Máximo de resultados por búsqueda")
+    extra_jql: str = Field(default="", description="Filtro JQL adicional (ej: AND assignee = 'user')")
+    project: str = Field(default="TECCM", description="Proyecto Jira a buscar")
+
+
 class ExtractionRequest(BaseModel):
     inc: str = Field(..., description="INC ticket key, e.g., INC-117346")
-    window: str = Field(default="48h", description="Time window, e.g., 48h, 2d, 7d")
+    window: str = Field(default="48h", description="Time window (legacy, use search_options)")
+    search_options: Optional[SearchOptions] = Field(default=None, description="Opciones avanzadas de búsqueda")
 
 
 class ExtractionResponse(BaseModel):

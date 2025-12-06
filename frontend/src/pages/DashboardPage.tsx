@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock, Plus, Loader2, RefreshCw, Check } from 'lucide-react'
+import { Search, Clock, Plus, Loader2, RefreshCw, Check, Settings2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -13,10 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Header } from '@/components/Header'
 import { JobCard } from '@/components/JobCard'
 import { startExtraction, getJobs, deleteJob } from '@/api/client'
-import type { JobInfo } from '@/types'
+import type { JobInfo, SearchOptions } from '@/types'
 
 interface DashboardPageProps {
   username?: string
@@ -31,6 +40,16 @@ const WINDOW_OPTIONS = [
   { value: 'custom', label: 'Personalizado...' },
 ]
 
+const DEFAULT_SEARCH_OPTIONS: SearchOptions = {
+  window_before: '48h',
+  window_after: '2h',
+  include_active: true,
+  include_no_end: true,
+  max_results: 500,
+  extra_jql: '',
+  project: 'TECCM',
+}
+
 export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -42,6 +61,10 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const [pollingJobIds, setPollingJobIds] = useState<string[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showRefreshSuccess, setShowRefreshSuccess] = useState(false)
+
+  // Advanced search modal state
+  const [showAdvancedModal, setShowAdvancedModal] = useState(false)
+  const [advancedOptions, setAdvancedOptions] = useState<SearchOptions>(DEFAULT_SEARCH_OPTIONS)
 
   // Fetch jobs list
   const { data: jobsData, refetch: refetchJobs } = useQuery({
@@ -113,6 +136,31 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
     }
 
     extractMutation.mutate({ inc, window: getEffectiveWindow() })
+  }
+
+  const handleAdvancedSubmit = () => {
+    if (!incInput.trim()) return
+
+    const inc = incInput.toUpperCase().trim()
+    if (!inc.startsWith('INC-')) {
+      return
+    }
+
+    extractMutation.mutate({
+      inc,
+      window: advancedOptions.window_before,
+      search_options: advancedOptions,
+    })
+    setShowAdvancedModal(false)
+  }
+
+  const openAdvancedModal = () => {
+    // Sync current window setting with advanced options
+    setAdvancedOptions({
+      ...advancedOptions,
+      window_before: getEffectiveWindow(),
+    })
+    setShowAdvancedModal(true)
   }
 
   const handleJobClick = (job: JobInfo) => {
@@ -211,7 +259,20 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={openAdvancedModal}
+                    disabled={
+                      extractMutation.isPending ||
+                      !incInput.trim() ||
+                      !incInput.toUpperCase().startsWith('INC-')
+                    }
+                  >
+                    <Settings2 className="w-4 h-4" />
+                    Avanzado
+                  </Button>
                   <Button
                     type="submit"
                     disabled={
@@ -337,6 +398,179 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
           </section>
         </div>
       </main>
+
+      {/* Advanced Search Modal */}
+      <Dialog open={showAdvancedModal} onOpenChange={setShowAdvancedModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="w-5 h-5" />
+              Busqueda Avanzada
+            </DialogTitle>
+            <DialogDescription>
+              Personaliza los parametros de busqueda de TECCMs para {incInput.toUpperCase() || 'el incidente'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Time Windows */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Ventana Temporal</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="window_before" className="text-xs text-muted-foreground">
+                    Antes del INC
+                  </Label>
+                  <Select
+                    value={advancedOptions.window_before}
+                    onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_before: v })}
+                  >
+                    <SelectTrigger id="window_before">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12h">12 horas</SelectItem>
+                      <SelectItem value="24h">24 horas</SelectItem>
+                      <SelectItem value="48h">48 horas</SelectItem>
+                      <SelectItem value="72h">72 horas</SelectItem>
+                      <SelectItem value="7d">7 dias</SelectItem>
+                      <SelectItem value="14d">14 dias</SelectItem>
+                      <SelectItem value="30d">30 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="window_after" className="text-xs text-muted-foreground">
+                    Despues del INC
+                  </Label>
+                  <Select
+                    value={advancedOptions.window_after}
+                    onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, window_after: v })}
+                  >
+                    <SelectTrigger id="window_after">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0h">Sin margen</SelectItem>
+                      <SelectItem value="1h">1 hora</SelectItem>
+                      <SelectItem value="2h">2 horas</SelectItem>
+                      <SelectItem value="4h">4 horas</SelectItem>
+                      <SelectItem value="8h">8 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Search Types */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Tipos de Busqueda</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="include_active" className="text-sm">TECCMs activos</Label>
+                    <p className="text-xs text-muted-foreground">Cambios que estaban en curso al momento del INC</p>
+                  </div>
+                  <Switch
+                    id="include_active"
+                    checked={advancedOptions.include_active}
+                    onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_active: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="include_no_end" className="text-sm">TECCMs sin cerrar</Label>
+                    <p className="text-xs text-muted-foreground">Cambios que empezaron antes y siguen abiertos</p>
+                  </div>
+                  <Switch
+                    id="include_no_end"
+                    checked={advancedOptions.include_no_end}
+                    onCheckedChange={(v) => setAdvancedOptions({ ...advancedOptions, include_no_end: v })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Limits */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Limites</h4>
+              <div className="space-y-2">
+                <Label htmlFor="max_results" className="text-xs text-muted-foreground">
+                  Maximo de resultados por busqueda
+                </Label>
+                <Select
+                  value={String(advancedOptions.max_results)}
+                  onValueChange={(v) => setAdvancedOptions({ ...advancedOptions, max_results: parseInt(v) })}
+                >
+                  <SelectTrigger id="max_results">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="250">250</SelectItem>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="1000">1000</SelectItem>
+                    <SelectItem value="2000">2000</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Extra JQL */}
+            <div className="space-y-2">
+              <Label htmlFor="extra_jql" className="text-sm font-medium">Filtro JQL adicional</Label>
+              <Input
+                id="extra_jql"
+                placeholder='AND assignee = "usuario" AND summary ~ "deploy"'
+                value={advancedOptions.extra_jql}
+                onChange={(e) => setAdvancedOptions({ ...advancedOptions, extra_jql: e.target.value })}
+                className="font-mono text-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Filtro JQL que se anadira a todas las busquedas. Debe empezar con AND.
+              </p>
+            </div>
+
+            {/* Project */}
+            <div className="space-y-2">
+              <Label htmlFor="project" className="text-xs text-muted-foreground">
+                Proyecto Jira
+              </Label>
+              <Input
+                id="project"
+                value={advancedOptions.project}
+                onChange={(e) => setAdvancedOptions({ ...advancedOptions, project: e.target.value })}
+                className="font-mono"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setAdvancedOptions(DEFAULT_SEARCH_OPTIONS)}
+            >
+              Restaurar
+            </Button>
+            <Button
+              onClick={handleAdvancedSubmit}
+              disabled={extractMutation.isPending}
+            >
+              {extractMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Iniciando...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Analizar con opciones
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

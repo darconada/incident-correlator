@@ -31,6 +31,15 @@ async def start_extraction(
     """
     Start a new extraction job.
     Returns immediately with a job_id for polling.
+
+    Supports advanced search options:
+    - window_before: Time window before INC (default "48h")
+    - window_after: Time window after INC (default "2h")
+    - include_active: Include TECCMs active at INC time (default True)
+    - include_no_end: Include TECCMs without end date (default True)
+    - max_results: Max results per search (default 500)
+    - extra_jql: Additional JQL filter
+    - project: Jira project to search (default "TECCM")
     """
     db = get_db()
 
@@ -39,9 +48,29 @@ async def start_extraction(
     if not inc.startswith("INC-"):
         raise HTTPException(status_code=400, detail="Invalid INC format. Expected INC-XXXXXX")
 
+    # Determine window string for display
+    if request.search_options:
+        window_display = request.search_options.window_before
+    else:
+        window_display = request.window
+
     # Create job
-    job_id = db.create_job(inc, request.window)
-    logger.info(f"Created job {job_id} for {inc} with window {request.window}")
+    job_id = db.create_job(inc, window_display)
+    logger.info(f"Created job {job_id} for {inc} with window {window_display}")
+
+    # Convert search_options to dict if present
+    search_options_dict = None
+    if request.search_options:
+        search_options_dict = {
+            "window_before": request.search_options.window_before,
+            "window_after": request.search_options.window_after,
+            "include_active": request.search_options.include_active,
+            "include_no_end": request.search_options.include_no_end,
+            "max_results": request.search_options.max_results,
+            "extra_jql": request.search_options.extra_jql,
+            "project": request.search_options.project,
+        }
+        logger.info(f"Using advanced search options: {search_options_dict}")
 
     # Start background extraction
     start_extraction_job(
@@ -49,7 +78,8 @@ async def start_extraction(
         inc_key=inc,
         window=request.window,
         username=session.username,
-        password=session.password
+        password=session.password,
+        search_options=search_options_dict
     )
 
     return ExtractionResponse(
