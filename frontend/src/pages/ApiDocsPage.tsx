@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Header } from '@/components/Header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Copy, Check, ExternalLink } from 'lucide-react'
+import { Copy, Check, ExternalLink, Code2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ApiDocsPageProps {
@@ -404,6 +404,57 @@ export function ApiDocsPage({ username, onLogout }: ApiDocsPageProps) {
           </p>
         </div>
 
+        {/* Interactive Documentation */}
+        <Card className="mb-6 border-primary/30 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ExternalLink className="h-4 w-4 text-primary" />
+              Interactive Documentation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              For a fully interactive experience with live API testing, use the auto-generated OpenAPI documentation:
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/30 transition-colors"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                Swagger UI
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              <a
+                href="/redoc"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 transition-colors"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                </svg>
+                ReDoc
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              <a
+                href="/openapi.json"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-muted-foreground border border-border rounded-lg hover:bg-secondary/80 transition-colors"
+              >
+                <Code2 className="h-4 w-4" />
+                OpenAPI JSON
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Base URL */}
         <Card className="mb-6">
           <CardHeader className="pb-3">
@@ -463,7 +514,16 @@ export function ApiDocsPage({ username, onLogout }: ApiDocsPageProps) {
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>
-            For interactive API testing, you can also use tools like{' '}
+            You can also import the{' '}
+            <a
+              href="/openapi.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              OpenAPI spec
+            </a>{' '}
+            into{' '}
             <a
               href="https://www.postman.com/"
               target="_blank"

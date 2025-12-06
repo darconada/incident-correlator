@@ -79,19 +79,34 @@ if FRONTEND_DIR.exists():
     # Mount static assets (JS, CSS, etc.)
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
-    # Catch-all route for SPA - must be last
-    @app.get("/{full_path:path}")
-    async def serve_spa(request: Request, full_path: str):
-        """Serve the SPA frontend for all non-API routes."""
-        # Don't serve frontend for API routes
-        if full_path.startswith("api/"):
-            return {"error": "Not found"}, 404
+    # Routes that should NOT be handled by SPA (let FastAPI handle them)
+    EXCLUDED_PATHS = {"/api", "/docs", "/redoc", "/openapi.json", "/health"}
 
-        # Serve index.html for all other routes (SPA routing)
-        index_file = FRONTEND_DIR / "index.html"
-        if index_file.exists():
-            return FileResponse(index_file)
-        return {"error": "Frontend not built"}, 404
+    @app.middleware("http")
+    async def spa_middleware(request: Request, call_next):
+        """Middleware to serve SPA for non-API routes."""
+        path = request.url.path
+
+        # Check if path should be handled by FastAPI
+        should_skip = (
+            path.startswith("/api/") or
+            path.startswith("/assets/") or
+            path in EXCLUDED_PATHS
+        )
+
+        if should_skip:
+            # Let FastAPI handle it
+            return await call_next(request)
+
+        # For all other GET requests, serve the SPA
+        if request.method == "GET":
+            index_file = FRONTEND_DIR / "index.html"
+            if index_file.exists():
+                return FileResponse(index_file)
+
+        # For non-GET or if index doesn't exist, continue to FastAPI
+        return await call_next(request)
+
 else:
     @app.get("/")
     async def root():
