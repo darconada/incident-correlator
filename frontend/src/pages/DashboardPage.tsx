@@ -362,7 +362,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                 <div className="flex justify-between items-center">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={openManualModal}
                     disabled={extractMutation.isPending || manualMutation.isPending}
                   >
