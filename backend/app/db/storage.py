@@ -350,6 +350,46 @@ class Database:
         """Save thresholds to config."""
         self.set_config("thresholds", thresholds.model_dump())
 
+    # ══════════════════════════════════════════════════════════════════════════
+    #  SERVICE MAPPINGS
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def get_service_synonyms(self) -> Dict[str, List[str]]:
+        """Get service synonyms mapping from config or defaults."""
+        data = self.get_config("service_synonyms")
+        if data:
+            return data
+        # Return defaults from extractor
+        from ..services.extractor import DEFAULT_SERVICE_SYNONYMS
+        return DEFAULT_SERVICE_SYNONYMS
+
+    def set_service_synonyms(self, synonyms: Dict[str, List[str]]):
+        """Save service synonyms to config."""
+        self.set_config("service_synonyms", synonyms)
+
+    def reset_service_synonyms(self):
+        """Reset service synonyms to defaults."""
+        from ..services.extractor import DEFAULT_SERVICE_SYNONYMS
+        self.set_config("service_synonyms", DEFAULT_SERVICE_SYNONYMS)
+
+    def get_service_groups(self) -> Dict[str, List[str]]:
+        """Get related service groups from config or defaults."""
+        data = self.get_config("service_groups")
+        if data:
+            return data
+        # Return defaults from scorer
+        from ..services.scorer import DEFAULT_SERVICE_GROUPS
+        return DEFAULT_SERVICE_GROUPS
+
+    def set_service_groups(self, groups: Dict[str, List[str]]):
+        """Save related service groups to config."""
+        self.set_config("service_groups", groups)
+
+    def reset_service_groups(self):
+        """Reset service groups to defaults."""
+        from ..services.scorer import DEFAULT_SERVICE_GROUPS
+        self.set_config("service_groups", DEFAULT_SERVICE_GROUPS)
+
 
 # Singleton instance
 _db: Optional[Database] = None

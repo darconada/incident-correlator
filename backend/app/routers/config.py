@@ -5,7 +5,13 @@ Handles weights and other settings.
 
 from fastapi import APIRouter, Depends
 
-from ..models import Weights, WeightsConfig, WeightsUpdateRequest, AppConfig, AppConfigUpdateRequest, Penalties, Bonuses, Thresholds
+from ..models import (
+    Weights, WeightsConfig, WeightsUpdateRequest,
+    AppConfig, AppConfigUpdateRequest, Penalties, Bonuses, Thresholds,
+    ServiceSynonymsResponse, ServiceSynonymsUpdateRequest,
+    ServiceGroupsResponse, ServiceGroupsUpdateRequest,
+    ServiceMappingsResponse
+)
 from ..db.storage import get_db
 from ..routers.auth import require_auth, SessionData
 
@@ -135,3 +141,87 @@ async def reset_app_config(session: SessionData = Depends(require_auth)):
         thresholds=default_thresholds,
         top_results=settings.default_top_results
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SERVICE MAPPINGS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/mappings", response_model=ServiceMappingsResponse)
+async def get_service_mappings(session: SessionData = Depends(require_auth)):
+    """
+    Get all service mappings (synonyms and groups).
+    """
+    db = get_db()
+    return ServiceMappingsResponse(
+        synonyms=db.get_service_synonyms(),
+        groups=db.get_service_groups()
+    )
+
+
+@router.get("/mappings/synonyms", response_model=ServiceSynonymsResponse)
+async def get_service_synonyms(session: SessionData = Depends(require_auth)):
+    """
+    Get service synonyms mapping.
+    Maps canonical service names to their aliases.
+    """
+    db = get_db()
+    return ServiceSynonymsResponse(synonyms=db.get_service_synonyms())
+
+
+@router.put("/mappings/synonyms", response_model=ServiceSynonymsResponse)
+async def update_service_synonyms(
+    request: ServiceSynonymsUpdateRequest,
+    session: SessionData = Depends(require_auth)
+):
+    """
+    Update service synonyms mapping.
+    Replaces the entire mapping with the provided data.
+    """
+    db = get_db()
+    db.set_service_synonyms(request.synonyms)
+    return ServiceSynonymsResponse(synonyms=db.get_service_synonyms())
+
+
+@router.post("/mappings/synonyms/reset", response_model=ServiceSynonymsResponse)
+async def reset_service_synonyms(session: SessionData = Depends(require_auth)):
+    """
+    Reset service synonyms to defaults.
+    """
+    db = get_db()
+    db.reset_service_synonyms()
+    return ServiceSynonymsResponse(synonyms=db.get_service_synonyms())
+
+
+@router.get("/mappings/groups", response_model=ServiceGroupsResponse)
+async def get_service_groups(session: SessionData = Depends(require_auth)):
+    """
+    Get related service groups.
+    Maps ecosystem names to services that belong to that ecosystem.
+    """
+    db = get_db()
+    return ServiceGroupsResponse(groups=db.get_service_groups())
+
+
+@router.put("/mappings/groups", response_model=ServiceGroupsResponse)
+async def update_service_groups(
+    request: ServiceGroupsUpdateRequest,
+    session: SessionData = Depends(require_auth)
+):
+    """
+    Update service groups mapping.
+    Replaces the entire mapping with the provided data.
+    """
+    db = get_db()
+    db.set_service_groups(request.groups)
+    return ServiceGroupsResponse(groups=db.get_service_groups())
+
+
+@router.post("/mappings/groups/reset", response_model=ServiceGroupsResponse)
+async def reset_service_groups(session: SessionData = Depends(require_auth)):
+    """
+    Reset service groups to defaults.
+    """
+    db = get_db()
+    db.reset_service_groups()
+    return ServiceGroupsResponse(groups=db.get_service_groups())

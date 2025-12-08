@@ -93,8 +93,8 @@ TECHNOLOGIES = [
     "keycloak", "iam", "oauth", "ldap", "saml", "openid",
 ]
 
-# Sinónimos de servicios conocidos
-SERVICE_SYNONYMS = {
+# Sinónimos de servicios conocidos (defaults)
+DEFAULT_SERVICE_SYNONYMS = {
     "customer area": ["adc", "area de clientes", "customer system", "arsys customer panel", "área de clientes"],
     "control panel": ["pdc", "panel de control", "control panels"],
     "s3 object storage": ["s3", "object storage", "ic-s3", "cloudian", "hyperstore"],
@@ -108,6 +108,17 @@ SERVICE_SYNONYMS = {
     "webhosting": ["shared hosting", "sharedhosting", "web hosting"],
     "kubernetes": ["k8s", "container registry", "ic-kubernetes", "keycloak"],
 }
+
+def get_service_synonyms() -> Dict[str, List[str]]:
+    """Get service synonyms from database or defaults."""
+    try:
+        from ..db.storage import get_db
+        return get_db().get_service_synonyms()
+    except:
+        return DEFAULT_SERVICE_SYNONYMS
+
+# Alias for backwards compatibility
+SERVICE_SYNONYMS = DEFAULT_SERVICE_SYNONYMS
 
 # Patrones de hosts múltiples
 HOST_PATTERNS = [
@@ -401,9 +412,12 @@ def extract_services(text: str, business_units: List[str] = None) -> List[str]:
         'bug', 'feature', 'task', 'story', 'epic',
     }
 
+    # Load synonyms from DB (or defaults)
+    synonyms = get_service_synonyms()
+
     if text:
         text_lower = text.lower()
-        for canonical, aliases in SERVICE_SYNONYMS.items():
+        for canonical, aliases in synonyms.items():
             if canonical in text_lower:
                 services.add(canonical)
             for alias in aliases:
@@ -417,7 +431,7 @@ def extract_services(text: str, business_units: List[str] = None) -> List[str]:
             tag_lower = tag.lower().strip()
             if tag_lower in IGNORE_TAGS:
                 continue
-            for canonical, aliases in SERVICE_SYNONYMS.items():
+            for canonical, aliases in synonyms.items():
                 if canonical in tag_lower or any(a in tag_lower for a in aliases):
                     services.add(canonical)
                     break

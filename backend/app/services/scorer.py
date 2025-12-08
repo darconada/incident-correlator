@@ -58,24 +58,37 @@ PROXIMITY_THRESHOLDS = {
     "4h": 4.0,
 }
 
-# Grupos de servicios relacionados (mismo ecosistema = match parcial)
-RELATED_SERVICE_GROUPS = {
-    "ionos-cloud": {
+# Grupos de servicios relacionados (defaults - mismo ecosistema = match parcial)
+DEFAULT_SERVICE_GROUPS = {
+    "ionos-cloud": [
         "ic-cis", "ic-sre", "ic-oss", "ic-pss", "ic-bss", "ic-ess",
         "cloud api", "dcd", "dcd api", "compute", "network", "block storage",
         "s3 object storage", "kubernetes", "sre", "iam", "keycloak",
         "iaas provisioning", "storage provisioning", "compute provisioning",
         "network provisioning", "compute platform", "network platform",
         "storage platform", "ic-s3 object storage",
-    },
-    "arsys": {
+    ],
+    "arsys": [
         "customer area", "control panel", "mail", "dns", "webhosting",
         "dedicated server", "cloud server", "ar-cis", "ar-pss", "ar-oss",
-    },
-    "strato": {
+    ],
+    "strato": [
         "strato-mail", "strato-webmail", "strato-server", "str-cis", "str-pss",
-    },
+    ],
 }
+
+def get_service_groups() -> Dict[str, set]:
+    """Get service groups from database or defaults."""
+    try:
+        from ..db.storage import get_db
+        groups = get_db().get_service_groups()
+        # Convert lists to sets for matching
+        return {k: set(v) for k, v in groups.items()}
+    except:
+        return {k: set(v) for k, v in DEFAULT_SERVICE_GROUPS.items()}
+
+# Alias for backwards compatibility (as sets)
+RELATED_SERVICE_GROUPS = {k: set(v) for k, v in DEFAULT_SERVICE_GROUPS.items()}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -318,8 +331,9 @@ def calculate_service_score(
         )
 
     # 2. Buscar matches por grupo relacionado
+    service_groups = get_service_groups()
     related_groups = []
-    for group_name, group_services in RELATED_SERVICE_GROUPS.items():
+    for group_name, group_services in service_groups.items():
         inc_in_group = inc_set & group_services
         teccm_in_group = teccm_set & group_services
 

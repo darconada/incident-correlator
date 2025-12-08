@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Save, RotateCcw, Clock, Layers, Server, Users, Check, ListOrdered, AlertTriangle, Zap, Timer } from 'lucide-react'
+import { ArrowLeft, Save, RotateCcw, Clock, Layers, Server, Users, Check, ListOrdered, AlertTriangle, Zap, Timer, Tags, FolderTree, Plus, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,16 @@ import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Header } from '@/components/Header'
-import { getAppConfig, updateAppConfig, resetAppConfig } from '@/api/client'
+import {
+  getAppConfig,
+  updateAppConfig,
+  resetAppConfig,
+  getServiceMappings,
+  updateServiceSynonyms,
+  updateServiceGroups,
+  resetServiceSynonyms,
+  resetServiceGroups,
+} from '@/api/client'
 import type { Weights, Penalties, Bonuses, Thresholds, AppConfig } from '@/types'
 
 // Valores por defecto
@@ -142,6 +151,156 @@ export function SettingsPage({ username, onLogout }: SettingsPageProps) {
       setTimeout(() => setSaved(false), 2000)
     },
   })
+
+  // Service mappings
+  const [localSynonyms, setLocalSynonyms] = useState<Record<string, string[]> | null>(null)
+  const [localGroups, setLocalGroups] = useState<Record<string, string[]> | null>(null)
+  const [expandedSynonyms, setExpandedSynonyms] = useState<Set<string>>(new Set())
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [newSynonymService, setNewSynonymService] = useState('')
+  const [newGroupName, setNewGroupName] = useState('')
+  const [synonymsSaved, setSynonymsSaved] = useState(false)
+  const [synonymsReset, setSynonymsReset] = useState(false)
+  const [groupsSaved, setGroupsSaved] = useState(false)
+  const [groupsReset, setGroupsReset] = useState(false)
+
+  const { data: mappingsData } = useQuery({
+    queryKey: ['serviceMappings'],
+    queryFn: getServiceMappings,
+  })
+
+  useEffect(() => {
+    if (mappingsData && !localSynonyms) {
+      setLocalSynonyms(mappingsData.synonyms)
+    }
+    if (mappingsData && !localGroups) {
+      setLocalGroups(mappingsData.groups)
+    }
+  }, [mappingsData, localSynonyms, localGroups])
+
+  const updateSynonymsMutation = useMutation({
+    mutationFn: updateServiceSynonyms,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['serviceMappings'] })
+      setSynonymsSaved(true)
+      setTimeout(() => setSynonymsSaved(false), 2000)
+    },
+  })
+
+  const updateGroupsMutation = useMutation({
+    mutationFn: updateServiceGroups,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['serviceMappings'] })
+      setGroupsSaved(true)
+      setTimeout(() => setGroupsSaved(false), 2000)
+    },
+  })
+
+  const resetSynonymsMutation = useMutation({
+    mutationFn: resetServiceSynonyms,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['serviceMappings'] })
+      setLocalSynonyms(data.synonyms)
+      setSynonymsReset(true)
+      setTimeout(() => setSynonymsReset(false), 2000)
+    },
+  })
+
+  const resetGroupsMutation = useMutation({
+    mutationFn: resetServiceGroups,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['serviceMappings'] })
+      setLocalGroups(data.groups)
+      setGroupsReset(true)
+      setTimeout(() => setGroupsReset(false), 2000)
+    },
+  })
+
+  // Synonym handlers
+  const handleAddSynonymAlias = (service: string, alias: string) => {
+    if (!localSynonyms || !alias.trim()) return
+    const aliases = localSynonyms[service] || []
+    if (aliases.includes(alias.trim().toLowerCase())) return
+    setLocalSynonyms({
+      ...localSynonyms,
+      [service]: [...aliases, alias.trim().toLowerCase()]
+    })
+  }
+
+  const handleRemoveSynonymAlias = (service: string, alias: string) => {
+    if (!localSynonyms) return
+    setLocalSynonyms({
+      ...localSynonyms,
+      [service]: localSynonyms[service].filter(a => a !== alias)
+    })
+  }
+
+  const handleAddSynonymService = () => {
+    if (!localSynonyms || !newSynonymService.trim()) return
+    const serviceName = newSynonymService.trim().toLowerCase()
+    if (localSynonyms[serviceName]) return
+    setLocalSynonyms({
+      ...localSynonyms,
+      [serviceName]: []
+    })
+    setNewSynonymService('')
+    setExpandedSynonyms(new Set([...expandedSynonyms, serviceName]))
+  }
+
+  const handleRemoveSynonymService = (service: string) => {
+    if (!localSynonyms) return
+    const { [service]: _, ...rest } = localSynonyms
+    setLocalSynonyms(rest)
+  }
+
+  const handleSaveSynonyms = () => {
+    if (localSynonyms) {
+      updateSynonymsMutation.mutate(localSynonyms)
+    }
+  }
+
+  // Group handlers
+  const handleAddGroupService = (group: string, service: string) => {
+    if (!localGroups || !service.trim()) return
+    const services = localGroups[group] || []
+    if (services.includes(service.trim().toLowerCase())) return
+    setLocalGroups({
+      ...localGroups,
+      [group]: [...services, service.trim().toLowerCase()]
+    })
+  }
+
+  const handleRemoveGroupService = (group: string, service: string) => {
+    if (!localGroups) return
+    setLocalGroups({
+      ...localGroups,
+      [group]: localGroups[group].filter(s => s !== service)
+    })
+  }
+
+  const handleAddGroup = () => {
+    if (!localGroups || !newGroupName.trim()) return
+    const groupName = newGroupName.trim().toLowerCase()
+    if (localGroups[groupName]) return
+    setLocalGroups({
+      ...localGroups,
+      [groupName]: []
+    })
+    setNewGroupName('')
+    setExpandedGroups(new Set([...expandedGroups, groupName]))
+  }
+
+  const handleRemoveGroup = (group: string) => {
+    if (!localGroups) return
+    const { [group]: _, ...rest } = localGroups
+    setLocalGroups(rest)
+  }
+
+  const handleSaveGroups = () => {
+    if (localGroups) {
+      updateGroupsMutation.mutate(localGroups)
+    }
+  }
 
   const handleWeightChange = (key: keyof Weights, value: number) => {
     if (localConfig) {
@@ -487,6 +646,260 @@ export function SettingsPage({ username, onLogout }: SettingsPageProps) {
                   step={5}
                   onValueChange={([value]) => handleTopResultsChange(value)}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Service Synonyms Card */}
+          <Card className="animate-fade-in" style={{ animationDelay: '350ms' }}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tags className="w-5 h-5 text-violet-400" />
+                    Sinonimos de Servicios
+                  </CardTitle>
+                  <CardDescription>
+                    Mapeo de nombres canonicos a sus alias. Cuando se detecta un alias, se normaliza al nombre canonico.
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm('¿Restaurar sinonimos a valores por defecto?\n\nEsto eliminara todos los cambios personalizados y afectara a todos los usuarios.')) {
+                        resetSynonymsMutation.mutate()
+                      }
+                    }}
+                    disabled={resetSynonymsMutation.isPending || synonymsReset}
+                  >
+                    {synonymsReset ? (
+                      <><Check className="w-3 h-3 mr-1 text-emerald-400" />Reseteado</>
+                    ) : resetSynonymsMutation.isPending ? (
+                      <><RotateCcw className="w-3 h-3 mr-1 animate-spin" />Reseteando...</>
+                    ) : (
+                      <><RotateCcw className="w-3 h-3 mr-1" />Reset</>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveSynonyms}
+                    disabled={updateSynonymsMutation.isPending || !localSynonyms || synonymsSaved}
+                  >
+                    {synonymsSaved ? (
+                      <><Check className="w-3 h-3 mr-1" />Guardado</>
+                    ) : updateSynonymsMutation.isPending ? (
+                      <><Save className="w-3 h-3 mr-1 animate-pulse" />Guardando...</>
+                    ) : (
+                      <><Save className="w-3 h-3 mr-1" />Guardar</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Add new service */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nuevo servicio canonico..."
+                  value={newSynonymService}
+                  onChange={(e) => setNewSynonymService(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSynonymService()}
+                  className="flex-1"
+                />
+                <Button size="sm" onClick={handleAddSynonymService}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* List of services */}
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {localSynonyms && Object.entries(localSynonyms).sort(([a], [b]) => a.localeCompare(b)).map(([service, aliases]) => {
+                  const isExpanded = expandedSynonyms.has(service)
+                  return (
+                    <div key={service} className="border border-border rounded-lg overflow-hidden">
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 bg-secondary/30 cursor-pointer hover:bg-secondary/50"
+                        onClick={() => {
+                          const newExpanded = new Set(expandedSynonyms)
+                          if (isExpanded) newExpanded.delete(service)
+                          else newExpanded.add(service)
+                          setExpandedSynonyms(newExpanded)
+                        }}
+                      >
+                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        <span className="font-medium text-sm flex-1">{service}</span>
+                        <span className="text-xs text-muted-foreground">{aliases.length} alias</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveSynonymService(service) }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {isExpanded && (
+                        <div className="px-3 py-2 space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {aliases.map(alias => (
+                              <span
+                                key={alias}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary rounded text-xs"
+                              >
+                                {alias}
+                                <button
+                                  onClick={() => handleRemoveSynonymAlias(service, alias)}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <Input
+                            placeholder="Añadir alias..."
+                            className="h-7 text-xs"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleAddSynonymAlias(service, (e.target as HTMLInputElement).value)
+                                ;(e.target as HTMLInputElement).value = ''
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Service Groups Card */}
+          <Card className="animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderTree className="w-5 h-5 text-emerald-400" />
+                    Grupos de Servicios (Ecosistemas)
+                  </CardTitle>
+                  <CardDescription>
+                    Servicios del mismo ecosistema. Si no hay match exacto, un match de ecosistema da 25 puntos.
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm('¿Restaurar ecosistemas a valores por defecto?\n\nEsto eliminara todos los cambios personalizados y afectara a todos los usuarios.')) {
+                        resetGroupsMutation.mutate()
+                      }
+                    }}
+                    disabled={resetGroupsMutation.isPending || groupsReset}
+                  >
+                    {groupsReset ? (
+                      <><Check className="w-3 h-3 mr-1 text-emerald-400" />Reseteado</>
+                    ) : resetGroupsMutation.isPending ? (
+                      <><RotateCcw className="w-3 h-3 mr-1 animate-spin" />Reseteando...</>
+                    ) : (
+                      <><RotateCcw className="w-3 h-3 mr-1" />Reset</>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSaveGroups}
+                    disabled={updateGroupsMutation.isPending || !localGroups || groupsSaved}
+                  >
+                    {groupsSaved ? (
+                      <><Check className="w-3 h-3 mr-1" />Guardado</>
+                    ) : updateGroupsMutation.isPending ? (
+                      <><Save className="w-3 h-3 mr-1 animate-pulse" />Guardando...</>
+                    ) : (
+                      <><Save className="w-3 h-3 mr-1" />Guardar</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Add new group */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nuevo ecosistema..."
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddGroup()}
+                  className="flex-1"
+                />
+                <Button size="sm" onClick={handleAddGroup}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* List of groups */}
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {localGroups && Object.entries(localGroups).sort(([a], [b]) => a.localeCompare(b)).map(([group, services]) => {
+                  const isExpanded = expandedGroups.has(group)
+                  return (
+                    <div key={group} className="border border-border rounded-lg overflow-hidden">
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 bg-secondary/30 cursor-pointer hover:bg-secondary/50"
+                        onClick={() => {
+                          const newExpanded = new Set(expandedGroups)
+                          if (isExpanded) newExpanded.delete(group)
+                          else newExpanded.add(group)
+                          setExpandedGroups(newExpanded)
+                        }}
+                      >
+                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        <span className="font-medium text-sm flex-1">{group}</span>
+                        <span className="text-xs text-muted-foreground">{services.length} servicios</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveGroup(group) }}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {isExpanded && (
+                        <div className="px-3 py-2 space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {services.map(service => (
+                              <span
+                                key={service}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary rounded text-xs"
+                              >
+                                {service}
+                                <button
+                                  onClick={() => handleRemoveGroupService(group, service)}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <Input
+                            placeholder="Añadir servicio al ecosistema..."
+                            className="h-7 text-xs"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleAddGroupService(group, (e.target as HTMLInputElement).value)
+                                ;(e.target as HTMLInputElement).value = ''
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

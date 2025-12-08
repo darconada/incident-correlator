@@ -226,3 +226,45 @@ class AppConfigUpdateRequest(BaseModel):
     bonuses: Optional[Bonuses] = None
     thresholds: Optional[Thresholds] = None
     top_results: Optional[int] = Field(default=None, ge=5, le=200)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SERVICE MAPPINGS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ServiceSynonymsResponse(BaseModel):
+    """Response with service synonyms mapping."""
+    synonyms: Dict[str, List[str]] = Field(
+        ...,
+        description="Map of canonical service name -> list of aliases"
+    )
+
+
+class ServiceSynonymsUpdateRequest(BaseModel):
+    """Request to update service synonyms."""
+    synonyms: Dict[str, List[str]] = Field(
+        ...,
+        description="Complete map of service synonyms to save"
+    )
+
+
+class ServiceGroupsResponse(BaseModel):
+    """Response with related service groups."""
+    groups: Dict[str, List[str]] = Field(
+        ...,
+        description="Map of ecosystem name -> list of services in that ecosystem"
+    )
+
+
+class ServiceGroupsUpdateRequest(BaseModel):
+    """Request to update service groups."""
+    groups: Dict[str, List[str]] = Field(
+        ...,
+        description="Complete map of service groups to save"
+    )
+
+
+class ServiceMappingsResponse(BaseModel):
+    """Combined response with all service mappings."""
+    synonyms: Dict[str, List[str]]
+    groups: Dict[str, List[str]]

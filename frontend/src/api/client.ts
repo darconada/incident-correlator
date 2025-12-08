@@ -152,3 +152,43 @@ export async function resetAppConfig(): Promise<AppConfig> {
     method: 'POST',
   })
 }
+
+// Service Mappings
+export interface ServiceMappings {
+  synonyms: Record<string, string[]>
+  groups: Record<string, string[]>
+}
+
+export async function getServiceMappings(): Promise<ServiceMappings> {
+  return request<ServiceMappings>('/config/mappings')
+}
+
+export async function updateServiceSynonyms(
+  synonyms: Record<string, string[]>
+): Promise<{ synonyms: Record<string, string[]> }> {
+  return request<{ synonyms: Record<string, string[]> }>('/config/mappings/synonyms', {
+    method: 'PUT',
+    body: JSON.stringify({ synonyms }),
+  })
+}
+
+export async function resetServiceSynonyms(): Promise<{ synonyms: Record<string, string[]> }> {
+  return request<{ synonyms: Record<string, string[]> }>('/config/mappings/synonyms/reset', {
+    method: 'POST',
+  })
+}
+
+export async function updateServiceGroups(
+  groups: Record<string, string[]>
+): Promise<{ groups: Record<string, string[]> }> {
+  return request<{ groups: Record<string, string[]> }>('/config/mappings/groups', {
+    method: 'PUT',
+    body: JSON.stringify({ groups }),
+  })
+}
+
+export async function resetServiceGroups(): Promise<{ groups: Record<string, string[]> }> {
+  return request<{ groups: Record<string, string[]> }>('/config/mappings/groups/reset', {
+    method: 'POST',
+  })
+}
