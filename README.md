@@ -13,6 +13,8 @@ Aplicacion web para analizar correlaciones entre incidentes de produccion (INC) 
 - **Ranking visual**: Muestra los TECCMs mas probables con scores detallados
 - **Pesos ajustables**: Personaliza la importancia de cada dimension y recalcula en tiempo real
 - **Historial enriquecido**: Muestra usuario, tipo de analisis (estandar/personalizado/manual) y resumen de opciones
+- **Cancelacion de tareas**: Boton para cancelar analisis en curso con feedback visual
+- **Mapeos de servicios editables**: Configura sinonimos y grupos de servicios desde la UI
 - **Servicio systemd**: Arranca automaticamente con el sistema
 
 ## Arquitectura
@@ -249,6 +251,7 @@ Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, p
 | GET | `/api/analysis/options/services` | Lista de servicios disponibles |
 | GET | `/api/analysis/jobs` | Listar jobs |
 | GET | `/api/analysis/jobs/{id}` | Estado de un job |
+| POST | `/api/analysis/jobs/{id}/cancel` | Cancelar un job en curso |
 | DELETE | `/api/analysis/jobs/{id}` | Eliminar un job |
 | GET | `/api/analysis/{id}/ranking` | Obtener ranking |
 | POST | `/api/analysis/score` | Recalcular con nuevos pesos |
@@ -257,6 +260,11 @@ Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, p
 | PUT | `/api/config/weights` | Actualizar pesos |
 | GET | `/api/config/app` | Obtener configuracion completa |
 | PUT | `/api/config/app` | Actualizar configuracion |
+| GET | `/api/config/mappings` | Obtener mapeos de servicios |
+| PUT | `/api/config/mappings/synonyms` | Actualizar sinonimos de servicios |
+| POST | `/api/config/mappings/synonyms/reset` | Resetear sinonimos a defecto |
+| PUT | `/api/config/mappings/groups` | Actualizar grupos de servicios |
+| POST | `/api/config/mappings/groups/reset` | Resetear grupos a defecto |
 | GET | `/health` | Health check (no requiere auth) |
 
 ## Estructura del Proyecto
@@ -301,10 +309,16 @@ incident-correlator/
 ## Desarrollo
 
 ### Anadir nuevas tecnologias o servicios
-Editar `backend/app/services/extractor.py`:
+
+**Desde la UI** (recomendado):
+- Ir a Configuracion > Mapeos de Servicios
+- Editar sinonimos de servicios (JSON)
+- Editar grupos de ecosistemas (JSON)
+- Los cambios se guardan en base de datos y persisten
+
+**Desde codigo** (para tecnologias):
+- Editar `backend/app/services/extractor.py`:
 - Lista `TECHNOLOGIES` para nuevas tecnologias
-- Dict `SERVICE_SYNONYMS` para sinonimos de servicios
-- Dict `RELATED_SERVICE_GROUPS` para grupos de ecosistemas
 
 ### Modificar scoring
 Editar `backend/app/services/scorer.py`:
@@ -336,6 +350,7 @@ sudo systemctl restart inc-teccm-analyzer
 - VPN si es necesario
 
 ### Jobs que no terminan
+- Usar el boton X rojo para cancelar tareas en curso
 - Revisar logs: `sudo journalctl -u inc-teccm-analyzer -f`
 - Verificar timeout de Jira (puede ser lento con muchos tickets)
 - La extraccion paralela ayuda pero Jira puede hacer rate limiting
