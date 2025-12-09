@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { Header } from '@/components/Header'
 import { JobCard } from '@/components/JobCard'
-import { startExtraction, startManualAnalysis, getJobs, deleteJob, getTechnologies, getServices } from '@/api/client'
+import { startExtraction, startManualAnalysis, getJobs, deleteJob, cancelJob, getTechnologies, getServices } from '@/api/client'
 import type { JobInfo, SearchOptions, ManualAnalysisRequest } from '@/types'
 
 interface DashboardPageProps {
@@ -79,6 +79,8 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const [manualTeam, setManualTeam] = useState('')
   const [manualHostInput, setManualHostInput] = useState('')
   const [manualSearchOptions, setManualSearchOptions] = useState<SearchOptions>(DEFAULT_SEARCH_OPTIONS)
+  const [manualCustomBefore, setManualCustomBefore] = useState('')
+  const [showManualCustomBefore, setShowManualCustomBefore] = useState(false)
 
   // Fetch jobs list
   const { data: jobsData, refetch: refetchJobs } = useQuery({
@@ -137,6 +139,24 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
     },
   })
+
+  // Cancel job mutation
+  const [cancellingJobId, setCancellingJobId] = useState<string | null>(null)
+  const cancelMutation = useMutation({
+    mutationFn: cancelJob,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      setCancellingJobId(null)
+    },
+    onError: () => {
+      setCancellingJobId(null)
+    },
+  })
+
+  const handleCancelJob = (jobId: string) => {
+    setCancellingJobId(jobId)
+    cancelMutation.mutate(jobId)
+  }
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -272,7 +292,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const jobs = jobsData?.jobs || []
   const runningJobs = jobs.filter((j) => j.status === 'running' || j.status === 'pending')
   const completedJobs = jobs.filter((j) => j.status === 'completed')
-  const failedJobs = jobs.filter((j) => j.status === 'failed')
+  const failedJobs = jobs.filter((j) => j.status === 'failed' || j.status === 'cancelled')
 
   return (
     <div className="min-h-screen bg-background">
@@ -432,7 +452,12 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               </div>
               <div className="space-y-3">
                 {runningJobs.map((job) => (
-                  <JobCard key={job.job_id} job={job} />
+                  <JobCard
+                    key={job.job_id}
+                    job={job}
+                    onCancel={() => handleCancelJob(job.job_id)}
+                    isCancelling={cancellingJobId === job.job_id}
+                  />
                 ))}
               </div>
             </section>
@@ -899,21 +924,66 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Ventana de busqueda</Label>
-                <Select
-                  value={manualSearchOptions.window_before}
-                  onValueChange={(v) => setManualSearchOptions({ ...manualSearchOptions, window_before: v })}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="12h">12 horas</SelectItem>
-                    <SelectItem value="24h">24 horas</SelectItem>
-                    <SelectItem value="48h">48 horas</SelectItem>
-                    <SelectItem value="72h">72 horas</SelectItem>
-                    <SelectItem value="7d">7 dias</SelectItem>
-                  </SelectContent>
-                </Select>
+                {showManualCustomBefore ? (
+                  <div className="flex gap-1">
+                    <div className="relative flex-1">
+                      <Input
+                        type="number"
+                        min="1"
+                        max="720"
+                        placeholder="Horas"
+                        value={manualCustomBefore}
+                        onChange={(e) => {
+                          setManualCustomBefore(e.target.value)
+                          if (e.target.value) {
+                            setManualSearchOptions({ ...manualSearchOptions, window_before: `${e.target.value}h` })
+                          }
+                        }}
+                        className="h-8 pr-6"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        h
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setShowManualCustomBefore(false)
+                        setManualCustomBefore('')
+                        setManualSearchOptions({ ...manualSearchOptions, window_before: '48h' })
+                      }}
+                      title="Volver a opciones predefinidas"
+                    >
+                      <Clock className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={manualSearchOptions.window_before}
+                    onValueChange={(v) => {
+                      if (v === 'custom') {
+                        setShowManualCustomBefore(true)
+                      } else {
+                        setManualSearchOptions({ ...manualSearchOptions, window_before: v })
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12h">12 horas</SelectItem>
+                      <SelectItem value="24h">24 horas</SelectItem>
+                      <SelectItem value="48h">48 horas</SelectItem>
+                      <SelectItem value="72h">72 horas</SelectItem>
+                      <SelectItem value="7d">7 dias</SelectItem>
+                      <SelectItem value="custom">Personalizado...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 

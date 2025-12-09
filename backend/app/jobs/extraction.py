@@ -22,6 +22,46 @@ _executor = ThreadPoolExecutor(max_workers=4)
 # Store for active jobs (in-memory, for progress tracking)
 _active_jobs: Dict[str, Dict[str, Any]] = {}
 
+# Set of cancelled job IDs
+_cancelled_jobs: set = set()
+
+
+class JobCancelledException(Exception):
+    """Raised when a job is cancelled by user."""
+    pass
+
+
+def cancel_job(job_id: str) -> bool:
+    """
+    Cancel a running job.
+
+    Returns True if the job was marked for cancellation.
+    """
+    db = get_db()
+    job = db.get_job(job_id)
+
+    if not job:
+        return False
+
+    # Only cancel running or pending jobs
+    if job.status not in (JobStatus.RUNNING, JobStatus.PENDING):
+        return False
+
+    _cancelled_jobs.add(job_id)
+    db.update_job_status(job_id, JobStatus.CANCELLED, error="Cancelado por el usuario")
+    logger.info(f"Job {job_id} marked for cancellation")
+
+    # Clean up from active jobs
+    if job_id in _active_jobs:
+        _active_jobs[job_id]["status"] = "cancelled"
+
+    return True
+
+
+def is_job_cancelled(job_id: str) -> bool:
+    """Check if a job has been cancelled."""
+    return job_id in _cancelled_jobs
+
 
 def get_job_progress(job_id: str) -> Optional[Dict[str, Any]]:
     """Get progress info for an active job."""
@@ -78,8 +118,12 @@ async def run_extraction_job(
         client = await loop.run_in_executor(_executor, connect_jira)
         logger.info(f"Connected to Jira for job {job_id}")
 
-        # Define progress callback
+        # Define progress callback with cancellation check
         def progress_callback(current: int, total: int):
+            # Check for cancellation
+            if is_job_cancelled(job_id):
+                raise JobCancelledException(f"Job {job_id} was cancelled")
+
             _active_jobs[job_id].update({
                 "progress": current,
                 "total": total,
@@ -131,13 +175,23 @@ async def run_extraction_job(
         _active_jobs[job_id]["status"] = "completed"
         logger.info(f"Job {job_id} completed successfully")
 
+    except JobCancelledException:
+        logger.info(f"Job {job_id} was cancelled by user")
+        _active_jobs[job_id]["status"] = "cancelled"
+        # Status already updated in cancel_job()
+
     except Exception as e:
         logger.exception(f"Job {job_id} failed: {e}")
-        db.update_job_status(job_id, JobStatus.FAILED, error=str(e))
-        _active_jobs[job_id]["status"] = "failed"
-        _active_jobs[job_id]["error"] = str(e)
+        # Don't overwrite cancelled status
+        if not is_job_cancelled(job_id):
+            db.update_job_status(job_id, JobStatus.FAILED, error=str(e))
+            _active_jobs[job_id]["status"] = "failed"
+            _active_jobs[job_id]["error"] = str(e)
 
     finally:
+        # Clean up cancelled job from tracking set
+        if job_id in _cancelled_jobs:
+            _cancelled_jobs.discard(job_id)
         # Clean up after a delay (keep progress info available for a bit)
         await asyncio.sleep(60)
         if job_id in _active_jobs:
@@ -205,8 +259,12 @@ async def run_manual_analysis_job(
         client = await loop.run_in_executor(_executor, connect_jira)
         logger.info(f"Connected to Jira for manual analysis job {job_id}")
 
-        # Define progress callback
+        # Define progress callback with cancellation check
         def progress_callback(current: int, total: int):
+            # Check for cancellation
+            if is_job_cancelled(job_id):
+                raise JobCancelledException(f"Job {job_id} was cancelled")
+
             _active_jobs[job_id].update({
                 "progress": current,
                 "total": total,
@@ -256,13 +314,23 @@ async def run_manual_analysis_job(
         _active_jobs[job_id]["status"] = "completed"
         logger.info(f"Manual analysis job {job_id} completed successfully")
 
+    except JobCancelledException:
+        logger.info(f"Manual analysis job {job_id} was cancelled by user")
+        _active_jobs[job_id]["status"] = "cancelled"
+        # Status already updated in cancel_job()
+
     except Exception as e:
         logger.exception(f"Manual analysis job {job_id} failed: {e}")
-        db.update_job_status(job_id, JobStatus.FAILED, error=str(e))
-        _active_jobs[job_id]["status"] = "failed"
-        _active_jobs[job_id]["error"] = str(e)
+        # Don't overwrite cancelled status
+        if not is_job_cancelled(job_id):
+            db.update_job_status(job_id, JobStatus.FAILED, error=str(e))
+            _active_jobs[job_id]["status"] = "failed"
+            _active_jobs[job_id]["error"] = str(e)
 
     finally:
+        # Clean up cancelled job from tracking set
+        if job_id in _cancelled_jobs:
+            _cancelled_jobs.discard(job_id)
         await asyncio.sleep(60)
         if job_id in _active_jobs:
             del _active_jobs[job_id]

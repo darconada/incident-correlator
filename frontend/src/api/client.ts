@@ -95,6 +95,12 @@ export async function deleteJob(jobId: string): Promise<void> {
   await request(`/analysis/jobs/${jobId}`, { method: 'DELETE' })
 }
 
+export async function cancelJob(jobId: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/analysis/jobs/${jobId}/cancel`, {
+    method: 'POST',
+  })
+}
+
 export async function getRanking(jobId: string, top?: number): Promise<RankingResponse> {
   const params = top ? `?top=${top}` : ''
   return request<RankingResponse>(`/analysis/${jobId}/ranking${params}`)

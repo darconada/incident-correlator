@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Clock, Loader2, Trash2, Settings2, User, FileEdit } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock, Loader2, Trash2, Settings2, User, FileEdit, XCircle, X } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -27,6 +27,8 @@ interface JobCardProps {
   job: JobInfo
   onClick?: () => void
   onDelete?: () => void
+  onCancel?: () => void
+  isCancelling?: boolean
   className?: string
   style?: React.CSSProperties
 }
@@ -60,12 +62,20 @@ const STATUS_CONFIG = {
     bgColor: 'bg-red-500/10',
     animate: false,
   },
+  cancelled: {
+    icon: XCircle,
+    label: 'Cancelado',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/10',
+    animate: false,
+  },
 }
 
-export function JobCard({ job, onClick, onDelete, className, style }: JobCardProps) {
+export function JobCard({ job, onClick, onDelete, onCancel, isCancelling, className, style }: JobCardProps) {
   const config = STATUS_CONFIG[job.status]
   const StatusIcon = config.icon
   const isClickable = job.status === 'completed'
+  const isCancellable = job.status === 'running' || job.status === 'pending'
   const jobTypeConfig = JOB_TYPE_CONFIG[job.job_type || 'standard']
   const JobTypeIcon = jobTypeConfig.icon
 
@@ -136,7 +146,26 @@ export function JobCard({ job, onClick, onDelete, className, style }: JobCardPro
             <span className="text-xs text-muted-foreground">
               {formatRelativeTime(job.created_at)}
             </span>
-            {onDelete && job.status !== 'running' && (
+            {onCancel && isCancellable && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onCancel()
+                }}
+                disabled={isCancelling}
+                title="Cancelar tarea"
+              >
+                {isCancelling ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <X className="w-5 h-5" />
+                )}
+              </Button>
+            )}
+            {onDelete && !isCancellable && (
               <Button
                 variant="ghost"
                 size="icon"

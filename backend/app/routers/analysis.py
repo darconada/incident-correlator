@@ -15,7 +15,7 @@ from ..models import (
     Weights
 )
 from ..db.storage import get_db
-from ..jobs.extraction import start_extraction_job, start_manual_analysis_job, get_job_progress
+from ..jobs.extraction import start_extraction_job, start_manual_analysis_job, get_job_progress, cancel_job
 from ..services.scorer import calculate_ranking, get_teccm_detail
 from ..routers.auth import require_auth, SessionData
 from ..config import get_settings
@@ -282,6 +282,20 @@ async def delete_job(
         raise HTTPException(status_code=404, detail="Job not found")
 
     return {"success": True, "message": "Job deleted"}
+
+
+@router.post("/jobs/{job_id}/cancel")
+async def cancel_job_endpoint(
+    job_id: str,
+    session: SessionData = Depends(require_auth)
+):
+    """
+    Cancel a running or pending job.
+    """
+    if not cancel_job(job_id):
+        raise HTTPException(status_code=400, detail="Job not found or cannot be cancelled")
+
+    return {"success": True, "message": "Job cancelled"}
 
 
 @router.post("/score", response_model=RankingResponse)
