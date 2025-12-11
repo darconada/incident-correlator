@@ -25,9 +25,31 @@ Incluir el campo "Affected Brand" de los TECCMs en la extraccion y scoring para 
 |-------|---------------|------|
 | **Affected Brand** | `customfield_12938` | multiselect (array) |
 
-**Valores conocidos de Brand:**
-- Arsys (key: 23529)
-- (Otros por descubrir: IONOS, 1&1, Strato, Fasthosts, etc.)
+**Formato del campo en API (array de objetos):**
+```json
+[
+  {"value": "Arsys", "id": "23529", "disabled": false}
+]
+```
+
+**Extracción necesaria:** `[item['value'] for item in field]`
+
+**Valores conocidos de Brand (13 opciones):**
+| Brand | ID |
+|-------|-----|
+| 1&1 | 23519 |
+| 1&1 Telecommunications | 23522 |
+| Arsys | 23529 |
+| Fasthosts | 23530 |
+| homePL | 23531 |
+| InterNetX | 23526 |
+| IONOS | 23527 |
+| IONOS Cloud | 23528 |
+| Mail & Media | 23533 |
+| STRATO | 23532 |
+| United Internet | 23535 |
+| united-domains AG | 23534 |
+| World4You | 23537 |
 
 ### Paso 2: Modificar extractor.py
 
@@ -43,14 +65,17 @@ CUSTOM_FIELDS = {
 
 **2.2 Extraer el campo en normalize_ticket() (linea ~650):**
 ```python
-# El campo es multiselect, puede venir como array o string
-affected_brands = get_custom_field_value(fields, 'affected_brand') or []
-if isinstance(affected_brands, str):
-    affected_brands = [affected_brands]
+# El campo viene como array de objetos: [{"value": "Arsys", "id": "23529"}, ...]
+affected_brand_raw = get_custom_field_value(fields, 'affected_brand') or []
+affected_brands = []
+if isinstance(affected_brand_raw, list):
+    affected_brands = [item.get('value') for item in affected_brand_raw if item.get('value')]
+elif isinstance(affected_brand_raw, str):
+    affected_brands = [affected_brand_raw]
 
 "organization": {
     "team": get_custom_field_value(fields, 'responsible_entity'),
-    "brands": affected_brands,  # <-- Array de brands (ej: ["Arsys", "IONOS"])
+    "brands": affected_brands,  # <-- Array de strings: ["Arsys", "IONOS"]
     "assignee": safe_get(safe_get(fields, 'assignee'), 'name'),
     # ... resto ...
 },
@@ -100,14 +125,24 @@ org_result = calculate_org_score(
 
 **4.1 Añadir selector de Brands en DashboardPage.tsx (modal Analisis Manual):**
 - Añadir estado `manualBrands: string[]`
-- Añadir MultiSelect con opciones predefinidas de marcas conocidas:
-  - IONOS
-  - 1&1
-  - Arsys
-  - Strato
-  - Fasthosts
-  - United Internet
-  - (otros por confirmar)
+- Añadir MultiSelect con las 13 marcas disponibles:
+```typescript
+const BRAND_OPTIONS = [
+  "1&1",
+  "1&1 Telecommunications",
+  "Arsys",
+  "Fasthosts",
+  "homePL",
+  "InterNetX",
+  "IONOS",
+  "IONOS Cloud",
+  "Mail & Media",
+  "STRATO",
+  "United Internet",
+  "united-domains AG",
+  "World4You",
+]
+```
 
 **4.2 Incluir brands en ManualAnalysisRequest (types/index.ts):**
 ```typescript
