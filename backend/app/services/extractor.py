@@ -34,6 +34,7 @@ CUSTOM_FIELDS = {
     "resolved_at": "customfield_12904",
     "completed": "customfield_12991",
     "first_response": "customfield_10818",
+    "first_impact_time": "customfield_12920",  # First Impact Time (INCs)
 
     # Organización
     "incident_owner": "customfield_12909",
@@ -615,6 +616,16 @@ def extract_ticket(jira: JIRA, issue_key: str) -> Optional[Dict[str, Any]]:
         if ticket_type == "CHANGE" and not live_intervals:
             warnings.append("No live_intervals found in comments, using planned_start/end")
 
+        # Determinar first_impact_time con cadena de fallbacks:
+        # 1. customfield_12920 (First Impact Time) - campo oficial de Jira para INCs
+        # 2. customfield_10303 (Start Date/Time) - fallback para INCs sin First Impact Time
+        # 3. Timeline entries del texto - último recurso
+        first_impact = (
+            normalize_datetime(get_custom_field_value(fields, 'first_impact_time')) or
+            normalize_datetime(get_custom_field_value(fields, 'start_datetime')) or
+            extract_first_impact_time(description, timeline_entries)
+        )
+
         normalized = {
             "issue_key": issue.key,
             "ticket_type": ticket_type,
@@ -623,7 +634,7 @@ def extract_ticket(jira: JIRA, issue_key: str) -> Optional[Dict[str, Any]]:
                 "created_at": normalize_datetime(safe_get(fields, 'created')),
                 "updated_at": normalize_datetime(safe_get(fields, 'updated')),
                 "resolved_at": normalize_datetime(safe_get(fields, 'resolutiondate')),
-                "first_impact_time": extract_first_impact_time(description, timeline_entries),
+                "first_impact_time": first_impact,
                 "planned_start": normalize_datetime(get_custom_field_value(fields, 'start_datetime')),
                 "planned_end": normalize_datetime(get_custom_field_value(fields, 'end_datetime')),
                 "live_intervals": live_intervals,
