@@ -733,18 +733,18 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                   {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
                 </div>
 
-                {/* Query 2: Active */}
+                {/* Query 2: Active (dentro de ventana Y activo en INC) */}
                 {advancedOptions.include_active && (
                   <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
-                    <span className="text-violet-400 font-semibold">2.</span> project={advancedOptions.project} AND Start &lt;= <span className="text-violet-400">[INC]</span> AND End &gt;= <span className="text-violet-400">[INC]</span>
+                    <span className="text-violet-400 font-semibold">2.</span> project={advancedOptions.project} AND Start &gt;= <span className="text-violet-400">[INC-{advancedOptions.window_before}]</span> AND Start &lt;= <span className="text-violet-400">[INC+{advancedOptions.window_after}]</span> AND End &gt;= <span className="text-violet-400">[INC]</span>
                     {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
                   </div>
                 )}
 
-                {/* Query 3: No end */}
+                {/* Query 3: No end (dentro de ventana Y sin fecha fin) */}
                 {advancedOptions.include_no_end && (
                   <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
-                    <span className="text-emerald-400 font-semibold">{advancedOptions.include_active ? '3' : '2'}.</span> project={advancedOptions.project} AND Start &lt;= <span className="text-emerald-400">[INC]</span> AND End IS EMPTY
+                    <span className="text-emerald-400 font-semibold">{advancedOptions.include_active ? '3' : '2'}.</span> project={advancedOptions.project} AND Start &gt;= <span className="text-emerald-400">[INC-{advancedOptions.window_before}]</span> AND Start &lt;= <span className="text-emerald-400">[INC+{advancedOptions.window_after}]</span> AND End IS EMPTY
                     {advancedOptions.extra_jql && <span className="text-amber-400"> {advancedOptions.extra_jql}</span>}
                   </div>
                 )}
@@ -1012,6 +1012,36 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                   onCheckedChange={(v) => setManualSearchOptions({ ...manualSearchOptions, include_external_maintenance: v })}
                 />
                 <Label htmlFor="manual_include_ext" className="text-xs">Ext. Maint.</Label>
+              </div>
+            </div>
+
+            {/* JQL Preview */}
+            <div className="space-y-2 pt-3 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Vista previa JQL</span>
+                <span className="text-xs bg-secondary px-2 py-0.5 rounded">
+                  {1 + (manualSearchOptions.include_active ? 1 : 0) + (manualSearchOptions.include_no_end ? 1 : 0)} consultas
+                </span>
+              </div>
+              <div className="space-y-1.5 text-[11px]">
+                {/* Query 1: Window */}
+                <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
+                  <span className="text-cyan-400 font-semibold">1.</span> project=TECCM AND Start &gt;= <span className="text-cyan-400">[IMPACT-{manualSearchOptions.window_before}]</span> AND Start &lt;= <span className="text-cyan-400">[IMPACT+{manualSearchOptions.window_after}]</span>
+                </div>
+
+                {/* Query 2: Active (dentro de ventana Y activo en IMPACT) */}
+                {manualSearchOptions.include_active && (
+                  <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
+                    <span className="text-violet-400 font-semibold">2.</span> project=TECCM AND Start &gt;= <span className="text-violet-400">[IMPACT-{manualSearchOptions.window_before}]</span> AND Start &lt;= <span className="text-violet-400">[IMPACT+{manualSearchOptions.window_after}]</span> AND End &gt;= <span className="text-violet-400">[IMPACT]</span>
+                  </div>
+                )}
+
+                {/* Query 3: No end (dentro de ventana Y sin fecha fin) */}
+                {manualSearchOptions.include_no_end && (
+                  <div className="p-1.5 rounded bg-secondary/50 font-mono break-all text-muted-foreground">
+                    <span className="text-emerald-400 font-semibold">{manualSearchOptions.include_active ? '3' : '2'}.</span> project=TECCM AND Start &gt;= <span className="text-emerald-400">[IMPACT-{manualSearchOptions.window_before}]</span> AND Start &lt;= <span className="text-emerald-400">[IMPACT+{manualSearchOptions.window_after}]</span> AND End IS EMPTY
+                  </div>
+                )}
               </div>
             </div>
           </div>

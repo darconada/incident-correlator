@@ -802,11 +802,14 @@ def search_teccm_in_window(
 
         # ══════════════════════════════════════════════════════════════════════
         # BÚSQUEDA 2: TECCMs activos al momento del incidente (opcional)
+        # Añade constraint de ventana: solo TECCMs que empezaron en la ventana
+        # Y estaban activos al momento del INC
         # ══════════════════════════════════════════════════════════════════════
         if options.include_active:
             jql_active = (
                 f'project = {options.project} AND '
-                f'"Start Date/Time" <= "{inc_str}" AND '
+                f'"Start Date/Time" >= "{start_str}" AND '
+                f'"Start Date/Time" <= "{end_str}" AND '
                 f'"End Date/Time" >= "{inc_str}"'
                 f'{extra_filter} '
                 f'ORDER BY "Start Date/Time" DESC'
@@ -823,12 +826,15 @@ def search_teccm_in_window(
             logger.info("Búsqueda 2 - TECCMs activos: OMITIDA")
 
         # ══════════════════════════════════════════════════════════════════════
-        # BÚSQUEDA 3: TECCMs activos sin fecha fin (opcional)
+        # BÚSQUEDA 3: TECCMs sin fecha fin (opcional)
+        # Añade constraint de ventana: solo TECCMs que empezaron en la ventana
+        # Y no tienen fecha de cierre
         # ══════════════════════════════════════════════════════════════════════
         if options.include_no_end:
             jql_no_end = (
                 f'project = {options.project} AND '
-                f'"Start Date/Time" <= "{inc_str}" AND '
+                f'"Start Date/Time" >= "{start_str}" AND '
+                f'"Start Date/Time" <= "{end_str}" AND '
                 f'"End Date/Time" IS EMPTY'
                 f'{extra_filter} '
                 f'ORDER BY "Start Date/Time" DESC'
