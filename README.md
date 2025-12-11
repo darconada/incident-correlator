@@ -157,6 +157,7 @@ Para cuando aun no existe el ticket de incidente pero hay un problema detectado:
   - **Tecnologias**: Selecciona de la lista
   - **Hosts**: Añade manualmente
   - **Equipo** (opcional)
+  - **Marca afectada** (opcional): Selecciona de las 13 marcas disponibles (Arsys, IONOS, STRATO, etc.)
 - Configura opciones de busqueda
 - Click en "Analizar"
 
@@ -168,7 +169,7 @@ El sistema extrae todos los TECCMs en la ventana y calcula un score de correlaci
 | **Time** | 35% | Si el impacto ocurrio durante el cambio |
 | **Service** | 30% | Servicios afectados en comun |
 | **Infra** | 20% | Hosts y tecnologias en comun |
-| **Org** | 15% | Equipo y personas involucradas |
+| **Org** | 15% | Equipo, marca y personas involucradas |
 
 ### 5. Historial de Analisis
 El historial muestra:
@@ -204,6 +205,7 @@ Click en cualquier TECCM para ver el desglose completo de sub-scores, matches, p
 ### Org Score (15%)
 - Mismo equipo: +50
 - Equipo relacionado: +25
+- Misma marca (Affected Brand): +50
 - Personas en comun: +15 por persona (max 50)
 
 ### Penalizaciones
