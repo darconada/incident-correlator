@@ -55,6 +55,9 @@ CUSTOM_FIELDS = {
     # Business Units
     "affected_business_units": "customfield_12921",
     "causing_business_units": "customfield_12922",
+
+    # Brand
+    "affected_brand": "customfield_12938",  # multiselect - array de brands
 }
 
 TECHNOLOGIES = [
@@ -603,6 +606,16 @@ def extract_ticket(jira: JIRA, issue_key: str) -> Optional[Dict[str, Any]]:
         if isinstance(affected_bu, str):
             affected_bu = [affected_bu]
 
+        # Extraer Affected Brand (multiselect)
+        # get_custom_field_value ya extrae los valores de la lista de objetos
+        affected_brand_raw = get_custom_field_value(fields, 'affected_brand') or []
+        if isinstance(affected_brand_raw, list):
+            affected_brands = [item for item in affected_brand_raw if isinstance(item, str)]
+        elif isinstance(affected_brand_raw, str):
+            affected_brands = [affected_brand_raw]
+        else:
+            affected_brands = []
+
         live_intervals = extract_live_intervals(comments)
 
         issue_data = {
@@ -646,6 +659,7 @@ def extract_ticket(jira: JIRA, issue_key: str) -> Optional[Dict[str, Any]]:
             },
             "organization": {
                 "team": get_custom_field_value(fields, 'responsible_entity'),
+                "brands": affected_brands,  # Array de strings: ["Arsys", "IONOS", ...]
                 "assignee": safe_get(safe_get(fields, 'assignee'), 'name'),
                 "reporter": safe_get(safe_get(fields, 'reporter'), 'name'),
                 "owner": get_custom_field_value(fields, 'change_owner') or get_custom_field_value(fields, 'incident_owner'),
@@ -1143,6 +1157,7 @@ def extract_teccms_for_manual_analysis(
         # Organización
         "organization": {
             "team": virtual_incident.get("team"),
+            "brands": virtual_incident.get("brands", []),  # Array de brands para análisis manual
             "people_involved": [],
         },
         "raw_fields": {},

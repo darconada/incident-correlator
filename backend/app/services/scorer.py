@@ -406,14 +406,17 @@ def calculate_infra_score(
 def calculate_org_score(
     inc_people: List[str],
     inc_team: str,
+    inc_brands: List[str],
     teccm_people: List[str],
-    teccm_team: str
+    teccm_team: str,
+    teccm_brands: List[str]
 ) -> ScoreDetail:
-    """Calcula el score organizativo."""
+    """Calcula el score organizativo (equipo, personas, marca)."""
     score = 0.0
     matches = []
     reasons = []
 
+    # Comparación de equipos
     if inc_team and teccm_team:
         inc_team_lower = inc_team.lower().strip()
         teccm_team_lower = teccm_team.lower().strip()
@@ -426,6 +429,20 @@ def calculate_org_score(
             score += 25.0
             reasons.append("equipo relacionado")
 
+    # Comparación de marcas (Affected Brand)
+    if inc_brands and teccm_brands:
+        inc_brands_lower = {b.lower().strip() for b in inc_brands if b}
+        teccm_brands_lower = {b.lower().strip() for b in teccm_brands if b}
+        matching_brands = inc_brands_lower & teccm_brands_lower
+
+        if matching_brands:
+            score += 50.0
+            # Mostrar los nombres originales en los matches
+            original_matches = [b for b in teccm_brands if b.lower().strip() in matching_brands]
+            reasons.append(f"misma marca ({', '.join(original_matches)})")
+            matches.extend(original_matches)
+
+    # Comparación de personas
     inc_people_set = set(p.lower().strip() for p in inc_people if p)
     teccm_people_set = set(p.lower().strip() for p in teccm_people if p)
     people_matches = inc_people_set & teccm_people_set
@@ -478,8 +495,10 @@ def score_teccm(
     org_score = calculate_org_score(
         inc['organization'].get('people_involved', []),
         inc['organization'].get('team'),
+        inc['organization'].get('brands', []),
         teccm['organization'].get('people_involved', []),
-        teccm['organization'].get('team')
+        teccm['organization'].get('team'),
+        teccm['organization'].get('brands', [])
     )
 
     final_score = (

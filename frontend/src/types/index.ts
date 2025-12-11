@@ -43,6 +43,7 @@ export interface ManualAnalysisRequest {
   hosts: string[]
   technologies: string[]
   team?: string
+  brands?: string[]
   search_options?: SearchOptions
 }
 

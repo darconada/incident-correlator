@@ -40,6 +40,22 @@ const WINDOW_OPTIONS = [
   { value: 'custom', label: 'Personalizado...' },
 ]
 
+const BRAND_OPTIONS = [
+  '1&1',
+  '1&1 Telecommunications',
+  'Arsys',
+  'Fasthosts',
+  'homePL',
+  'InterNetX',
+  'IONOS',
+  'IONOS Cloud',
+  'Mail & Media',
+  'STRATO',
+  'United Internet',
+  'united-domains AG',
+  'World4You',
+]
+
 const DEFAULT_SEARCH_OPTIONS: SearchOptions = {
   window_before: '48h',
   window_after: '2h',
@@ -77,6 +93,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const [manualHosts, setManualHosts] = useState<string[]>([])
   const [manualTechnologies, setManualTechnologies] = useState<string[]>([])
   const [manualTeam, setManualTeam] = useState('')
+  const [manualBrands, setManualBrands] = useState<string[]>([])
   const [manualHostInput, setManualHostInput] = useState('')
   const [manualSearchOptions, setManualSearchOptions] = useState<SearchOptions>(DEFAULT_SEARCH_OPTIONS)
   const [manualCustomBefore, setManualCustomBefore] = useState('')
@@ -227,6 +244,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
     setManualHosts([])
     setManualTechnologies([])
     setManualTeam('')
+    setManualBrands([])
     setManualHostInput('')
     setManualSearchOptions(DEFAULT_SEARCH_OPTIONS)
   }
@@ -249,6 +267,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
       hosts: manualHosts,
       technologies: manualTechnologies,
       team: manualTeam || undefined,
+      brands: manualBrands.length > 0 ? manualBrands : undefined,
       search_options: manualSearchOptions,
     }
 
@@ -280,6 +299,14 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
       setManualTechnologies(manualTechnologies.filter(t => t !== tech))
     } else {
       setManualTechnologies([...manualTechnologies, tech])
+    }
+  }
+
+  const toggleBrand = (brand: string) => {
+    if (manualBrands.includes(brand)) {
+      setManualBrands(manualBrands.filter(b => b !== brand))
+    } else {
+      setManualBrands([...manualBrands, brand])
     }
   }
 
@@ -922,7 +949,30 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               />
             </div>
 
-            {/* Row 6: Time Windows */}
+            {/* Row 6: Brands */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">
+                Marca afectada ({manualBrands.length} seleccionadas)
+              </Label>
+              <div className="flex flex-wrap gap-1.5 p-2 bg-secondary/30 rounded-md max-h-24 overflow-y-auto">
+                {BRAND_OPTIONS.map((brand) => (
+                  <button
+                    key={brand}
+                    type="button"
+                    onClick={() => toggleBrand(brand)}
+                    className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                      manualBrands.includes(brand)
+                        ? 'bg-violet-500 text-white'
+                        : 'bg-secondary hover:bg-secondary/80'
+                    }`}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 7: Time Windows */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Ventana antes</Label>

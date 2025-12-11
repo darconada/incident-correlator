@@ -5,8 +5,8 @@
 ### Descripcion
 Incluir el campo "Affected Brand" de los TECCMs en la extraccion y scoring para poder filtrar/puntuar por marca afectada.
 
-### Estado: PENDIENTE
-- **Fecha**: 2025-12-11
+### Estado: COMPLETADO
+- **Fecha implementacion**: 2025-12-11
 - **TECCM de referencia**: https://hosting-jira.1and1.org/browse/TECCM-162775
 
 ### Paso 1: Customfield ID (YA DESCUBIERTO)

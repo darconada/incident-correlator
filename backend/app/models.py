@@ -77,6 +77,7 @@ class ManualAnalysisRequest(BaseModel):
     hosts: List[str] = Field(default_factory=list, description="Hosts afectados")
     technologies: List[str] = Field(default_factory=list, description="Tecnologías involucradas")
     team: Optional[str] = Field(default=None, description="Equipo responsable")
+    brands: List[str] = Field(default_factory=list, description="Marcas afectadas (Affected Brand)")
     search_options: Optional[SearchOptions] = Field(default=None, description="Opciones de búsqueda de TECCMs")
 
 
