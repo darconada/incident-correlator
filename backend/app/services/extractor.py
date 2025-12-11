@@ -174,7 +174,7 @@ def safe_get(obj, attr, default=None):
 
 
 def parse_window(window_str: str) -> timedelta:
-    """Parsea una ventana temporal como '48h', '2d', '120m'."""
+    """Parsea una ventana temporal como '2h', '2d', '120m'."""
     match = re.match(r'^(\d+)([hdm])$', window_str.lower())
     if not match:
         raise ValueError(f"Formato de ventana inválido: {window_str}")
@@ -739,7 +739,7 @@ class SearchOptions:
     """Opciones de búsqueda de TECCMs."""
     def __init__(
         self,
-        window_before: str = "48h",
+        window_before: str = "2h",
         window_after: str = "2h",
         include_active: bool = True,
         include_no_end: bool = True,
@@ -784,7 +784,7 @@ def search_teccm_in_window(
     # Usar opciones por defecto si no se proporcionan
     if options is None:
         options = SearchOptions(
-            window_before=f"{int(window.total_seconds() // 3600)}h" if window else "48h"
+            window_before=f"{int(window.total_seconds() // 3600)}h" if window else "2h"
         )
 
     all_teccm_keys = set()
@@ -953,7 +953,7 @@ def extract_tickets_parallel(
 def extract_inc_with_teccms(
     jira: JIRA,
     inc_key: str,
-    window_str: str = "48h",
+    window_str: str = "2h",
     progress_callback: Callable[[int, int], None] = None,
     num_threads: int = DEFAULT_THREADS,
     search_options: Dict[str, Any] = None
@@ -964,11 +964,11 @@ def extract_inc_with_teccms(
     Args:
         jira: Cliente JIRA conectado
         inc_key: Key del incidente (e.g., "INC-117346")
-        window_str: Ventana temporal legacy (e.g., "48h", "2d") - se ignora si search_options está presente
+        window_str: Ventana temporal legacy (e.g., "2h", "2d") - se ignora si search_options está presente
         progress_callback: Función callback(current, total) para reportar progreso
         num_threads: Número de hilos para extracción paralela (default: 8)
         search_options: Dict con opciones avanzadas de búsqueda:
-            - window_before: str (default "48h")
+            - window_before: str (default "2h")
             - window_after: str (default "2h")
             - include_active: bool (default True)
             - include_no_end: bool (default True)
@@ -989,7 +989,7 @@ def extract_inc_with_teccms(
         include_external_maintenance = search_options.get("include_external_maintenance")
 
         options = SearchOptions(
-            window_before=search_options.get("window_before", "48h"),
+            window_before=search_options.get("window_before", "2h"),
             window_after=search_options.get("window_after", "2h"),
             include_active=include_active if include_active is not None else True,
             include_no_end=include_no_end if include_no_end is not None else True,
@@ -999,7 +999,7 @@ def extract_inc_with_teccms(
             project=search_options.get("project", "TECCM"),
         )
         # Para el log, usar window_before como referencia
-        window_str = search_options.get("window_before", "48h")
+        window_str = search_options.get("window_before", "2h")
     else:
         options = SearchOptions(window_before=window_str)
 
@@ -1063,7 +1063,7 @@ def extract_inc_with_teccms(
     # Añadir opciones avanzadas si se usaron
     if search_options:
         extraction_info["search_options"] = {
-            "window_before": search_options.get("window_before", "48h"),
+            "window_before": search_options.get("window_before", "2h"),
             "window_after": search_options.get("window_after", "2h"),
             "include_active": options.include_active,
             "include_no_end": options.include_no_end,
@@ -1119,7 +1119,7 @@ def extract_teccms_for_manual_analysis(
         include_external_maintenance = search_options.get("include_external_maintenance")
 
         options = SearchOptions(
-            window_before=search_options.get("window_before", "48h"),
+            window_before=search_options.get("window_before", "2h"),
             window_after=search_options.get("window_after", "2h"),
             include_active=include_active if include_active is not None else True,
             include_no_end=include_no_end if include_no_end is not None else True,
@@ -1128,10 +1128,10 @@ def extract_teccms_for_manual_analysis(
             extra_jql=search_options.get("extra_jql", ""),
             project=search_options.get("project", "TECCM"),
         )
-        window_str = search_options.get("window_before", "48h")
+        window_str = search_options.get("window_before", "2h")
     else:
         options = SearchOptions()
-        window_str = "48h"
+        window_str = "2h"
 
     # Crear el "incidente virtual" como un ticket sintético
     # Este formato es compatible con lo que espera el scorer
@@ -1222,7 +1222,7 @@ def extract_teccms_for_manual_analysis(
     # Añadir opciones de búsqueda
     if search_options:
         extraction_info["search_options"] = {
-            "window_before": search_options.get("window_before", "48h"),
+            "window_before": search_options.get("window_before", "2h"),
             "window_after": search_options.get("window_after", "2h"),
             "include_active": options.include_active,
             "include_no_end": options.include_no_end,

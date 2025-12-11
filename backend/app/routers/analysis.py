@@ -34,7 +34,7 @@ async def start_extraction(
     Returns immediately with a job_id for polling.
 
     Supports advanced search options:
-    - window_before: Time window before INC (default "48h")
+    - window_before: Time window before INC (default "2h")
     - window_after: Time window after INC (default "2h")
     - include_active: Include TECCMs active at INC time (default True)
     - include_no_end: Include TECCMs without end date (default True)

@@ -33,6 +33,7 @@ interface DashboardPageProps {
 }
 
 const WINDOW_OPTIONS = [
+  { value: '2h', label: '2 horas' },
   { value: '24h', label: '24 horas' },
   { value: '48h', label: '48 horas' },
   { value: '72h', label: '72 horas' },
@@ -57,7 +58,7 @@ const BRAND_OPTIONS = [
 ]
 
 const DEFAULT_SEARCH_OPTIONS: SearchOptions = {
-  window_before: '48h',
+  window_before: '2h',
   window_after: '2h',
   include_active: true,
   include_no_end: true,
@@ -72,7 +73,7 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
   const queryClient = useQueryClient()
 
   const [incInput, setIncInput] = useState('')
-  const [window, setWindow] = useState('48h')
+  const [window, setWindow] = useState('2h')
   const [customHours, setCustomHours] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [pollingJobIds, setPollingJobIds] = useState<string[]>([])

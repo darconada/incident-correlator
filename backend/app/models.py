@@ -53,7 +53,7 @@ class SessionInfo(BaseModel):
 
 class SearchOptions(BaseModel):
     """Opciones avanzadas de búsqueda de TECCMs."""
-    window_before: str = Field(default="48h", description="Ventana temporal hacia atrás desde el INC")
+    window_before: str = Field(default="2h", description="Ventana temporal hacia atrás desde el INC")
     window_after: str = Field(default="2h", description="Ventana temporal hacia adelante desde el INC")
     include_active: bool = Field(default=True, description="Incluir TECCMs activos al momento del INC")
     include_no_end: bool = Field(default=True, description="Incluir TECCMs sin fecha de fin")
