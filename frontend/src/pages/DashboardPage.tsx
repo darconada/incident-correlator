@@ -908,22 +908,24 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
               )}
             </div>
 
-            {/* Row 5: Team and Window */}
+            {/* Row 5: Team */}
+            <div className="space-y-1">
+              <Label htmlFor="manual_team" className="text-xs text-muted-foreground">
+                Equipo (opcional)
+              </Label>
+              <Input
+                id="manual_team"
+                placeholder="Ej: Platform Team"
+                value={manualTeam}
+                onChange={(e) => setManualTeam(e.target.value)}
+                className="h-8"
+              />
+            </div>
+
+            {/* Row 6: Time Windows */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="manual_team" className="text-xs text-muted-foreground">
-                  Equipo (opcional)
-                </Label>
-                <Input
-                  id="manual_team"
-                  placeholder="Ej: Platform Team"
-                  value={manualTeam}
-                  onChange={(e) => setManualTeam(e.target.value)}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Ventana de busqueda</Label>
+                <Label className="text-xs text-muted-foreground">Ventana antes</Label>
                 {showManualCustomBefore ? (
                   <div className="flex gap-1">
                     <div className="relative flex-1">
@@ -985,9 +987,27 @@ export function DashboardPage({ username, onLogout }: DashboardPageProps) {
                   </Select>
                 )}
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Ventana despues</Label>
+                <Select
+                  value={manualSearchOptions.window_after}
+                  onValueChange={(v) => setManualSearchOptions({ ...manualSearchOptions, window_after: v })}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0h">Sin margen</SelectItem>
+                    <SelectItem value="1h">1 hora</SelectItem>
+                    <SelectItem value="2h">2 horas</SelectItem>
+                    <SelectItem value="4h">4 horas</SelectItem>
+                    <SelectItem value="8h">8 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Row 6: Search toggles */}
+            {/* Row 7: Search toggles */}
             <div className="flex items-center gap-4 pt-2 border-t">
               <div className="flex items-center gap-2">
                 <Switch
