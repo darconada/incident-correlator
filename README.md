@@ -132,7 +132,7 @@ Introduce tus credenciales de Jira. Se usan para conectar a la API de Jira.
 
 **Analisis estandar**:
 - Introduce el ID del incidente (ej: `INC-117346`)
-- Selecciona la ventana temporal (24h, 48h, 72h, 7d)
+- Selecciona la ventana temporal (2h, 24h, 48h, 72h, 7d) - por defecto 2h
 - Click en "Analizar"
 
 **Busqueda avanzada**:
